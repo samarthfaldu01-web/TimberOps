@@ -1,0 +1,200 @@
+/* Import a clean, modern font similar to the screenshot */
+@import url('https://fonts.googleapis.com/css2?family=Kameron:wght@400..700&display=swap" rel="stylesheet');
+
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Kameron', serif;
+    height: 100vh;
+    background-color: #ffffff;
+}
+
+/* Flexbox container for the split screen */
+.split-screen-container {
+    display: flex;
+    height: 100vh;
+}
+
+/* --- LEFT PANEL (Form Side) --- */
+.left-panel {
+    flex: 1; /* Takes up 50% of the screen */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background-color: #fefae0;
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 400px; /* Keeps the form constrained and neat */
+}
+
+.brand-logo {
+    height: 40px; /* Adjust based on your logo */
+    margin-bottom: 30px;
+}
+
+.form-wrapper h2 {
+    font-size: 28px;
+    color: #111827;
+    margin-bottom: 8px;
+    margin-top: 0;
+}
+
+.subtitle {
+    color: #6b7280;
+    font-size: 15px;
+    margin-bottom: 30px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+/* Icon positioning inside the input */
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon i {
+    position: absolute;
+    color: #9ca3af;
+}
+
+.input-with-icon i:first-child {
+    left: 14px;
+}
+
+.toggle-password {
+    right: 14px;
+    cursor: pointer;
+}
+
+.input-with-icon input {
+    width: 100%;
+    padding: 12px 40px; /* Extra padding to make room for icons */
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.input-with-icon input:focus {
+    outline: none;
+    border-color: #111827;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    font-size: 14px;
+}
+
+.remember-me {
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.forgot-password {
+    color: #111827;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+}
+
+.login-btn {
+    width: 100%;
+    background-color: #606c38;
+    color: #ffffff;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.login-btn:hover {
+    background-color: #374151;
+}
+
+.error-message {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+/* --- RIGHT PANEL (Image Side) --- */
+.right-panel {
+    flex: 1; /* Takes up the other 50% */
+    /* Add your background image here! */
+    background-image: url('images/carpentry_img.jpg'); 
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display: flex;
+    align-items: flex-end; /* Pushes text to the bottom */
+}
+
+/* Optional dark overlay so text is readable over the image */
+.right-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.8) 100%);
+}
+
+.overlay-content {
+    position: relative; /* Places it above the dark overlay */
+    padding: 60px;
+    color: white;
+}
+
+.overlay-content h3 {
+    font-size: 24px;
+    margin-bottom: 12px;
+    margin-top: 0;
+}
+
+.overlay-content p {
+    font-size: 16px;
+    color: #d1d5db;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Responsive adjustment for smaller laptop screens */
+@media (max-width: 900px) {
+    .right-panel {
+        display: none; /* Hide the image on small screens */
+    }
+}
+
+.brand-logo {
+    width: 150px;   /* Change this value */
+    height: 150px;   /* Keeps the proportions */
+    margin-bottom: 30px;
+}

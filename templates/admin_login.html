@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - TimberOps</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_login.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="split-screen-container">
+        
+        <div class="left-panel">
+            <div class="form-wrapper">
+                <img src="{{ url_for('static', filename='images/transparent-logo.png') }}" alt="TimberOps Logo" class="brand-logo">
+                
+                <h2>Welcome Back</h2>
+                <p class="subtitle">Log in to your dashboard.</p>
+
+                {% with messages = get_flashed_messages() %}
+                  {% if messages %}
+                    <div class="error-message">
+                      {% for message in messages %}
+                        <p>{{ message }}</p>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                {% endwith %}
+
+                <form action="/admin/login" method="POST">
+                    <div class="input-group">
+                        <label for="username">Email</label>
+                        <div class="input-with-icon">
+                            <i class="fa-regular fa-envelope"></i>
+                            <input type="text" id="username" name="username" placeholder="Username" required>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" id="password" name="password" placeholder="•••••••••••••" required>
+                            <i class="fa-regular fa-eye toggle-password"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <label class="remember-me">
+                            <input type="checkbox" name="remember"> Remember me
+                        </label>
+                        <a href="#" class="forgot-password">Forgot Password?</a>
+                    </div>
+                    
+                    <button type="submit" class="login-btn">Log In</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="overlay-content">
+                <h3>Carpentry Made Easy.</h3>
+                <p>Everything you need in an easy dashboard.</p>
+            </div>
+        </div>
+
+    <script>
+        const togglePassword = document.querySelector(".toggle-password");
+        const password = document.querySelector("#password");
+
+        togglePassword.addEventListener("click", function () {
+            if (password.type === "password") {
+                password.type = "text";
+                this.classList.remove("fa-eye");
+                this.classList.add("fa-eye-slash");
+            } else {
+                password.type = "password";
+                this.classList.remove("fa-eye-slash");
+                this.classList.add("fa-eye");
+            }
+        });
+    </script>
+
+
+</body>
+</html>
