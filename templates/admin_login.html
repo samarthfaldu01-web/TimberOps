@@ -106,9 +106,11 @@
                             <input type="checkbox" name="remember">
                             Remember me
                         </label>
-
-                        <!-- Placeholder link for password recovery -->
-                        <a href="#" class="forgot-password">Forgot Password?</a>
+                        
+                        <!-- Opens the Forgot Password page -->
+                        <a href="{{ url_for('forgot_password') }}" class="forgot-password">
+                            Forgot Password?
+                        </a>
 
                     </div>
 
