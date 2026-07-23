@@ -1,87 +1,167 @@
 <!DOCTYPE html>
+<!-- Declares the document type as HTML5 -->
+
 <html lang="en">
 <head>
+    <!-- Character encoding used for the webpage -->
     <meta charset="UTF-8">
+
+    <!-- Makes the webpage responsive on different screen sizes -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Title displayed on the browser tab -->
     <title>Admin Login - TimberOps</title>
+
+    <!-- Links the external CSS stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='admin_login.css') }}">
+
+    <!-- Imports Font Awesome icons (email, lock, eye icon, etc.) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
 
+    <!-- Main container that creates the split-screen layout -->
     <div class="split-screen-container">
-        
+
+        <!-- Left panel containing the login form -->
         <div class="left-panel">
+
+            <!-- Wrapper used to keep the form centred and aligned -->
             <div class="form-wrapper">
+
+                <!-- TimberOps company logo -->
                 <img src="{{ url_for('static', filename='images/transparent-logo.png') }}" alt="TimberOps Logo" class="brand-logo">
-                
+
+                <!-- Login page heading -->
                 <h2>Welcome Back</h2>
+
+                <!-- Short description below the heading -->
                 <p class="subtitle">Log in to your dashboard.</p>
 
+                <!-- Flask flash messages used to display login errors -->
                 {% with messages = get_flashed_messages() %}
                   {% if messages %}
+
+                    <!-- Error message container -->
                     <div class="error-message">
+
+                      <!-- Loops through each flash message -->
                       {% for message in messages %}
                         <p>{{ message }}</p>
                       {% endfor %}
+
                     </div>
+
                   {% endif %}
                 {% endwith %}
 
+                <!-- Login form that submits data to the Flask backend -->
                 <form action="/admin/login" method="POST">
+
+                    <!-- Username/email input section -->
                     <div class="input-group">
+
+                        <!-- Label for the username field -->
                         <label for="username">Email</label>
+
+                        <!-- Input box with an email icon -->
                         <div class="input-with-icon">
+
+                            <!-- Email icon -->
                             <i class="fa-regular fa-envelope"></i>
+
+                            <!-- Username input field -->
                             <input type="text" id="username" name="username" placeholder="Username" required>
-                        </div>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label for="password">Password</label>
-                        <div class="input-with-icon">
-                            <i class="fa-solid fa-lock"></i>
-                            <input type="password" id="password" name="password" placeholder="•••••••••••••" required>
-                            <i class="fa-regular fa-eye toggle-password"></i>
+
                         </div>
                     </div>
 
-                    <div class="form-actions">
-                        <label class="remember-me">
-                            <input type="checkbox" name="remember"> Remember me
-                        </label>
-                        <a href="#" class="forgot-password">Forgot Password?</a>
+                    <!-- Password input section -->
+                    <div class="input-group">
+
+                        <!-- Label for the password field -->
+                        <label for="password">Password</label>
+
+                        <!-- Password field with icons -->
+                        <div class="input-with-icon">
+
+                            <!-- Lock icon -->
+                            <i class="fa-solid fa-lock"></i>
+
+                            <!-- Password input -->
+                            <input type="password" id="password" name="password" placeholder="•••••••••••••" required>
+
+                            <!-- Eye icon used to toggle password visibility -->
+                            <i class="fa-regular fa-eye toggle-password"></i>
+
+                        </div>
                     </div>
-                    
+
+                    <!-- Remember me checkbox and forgot password link -->
+                    <div class="form-actions">
+
+                        <!-- Remember login option -->
+                        <label class="remember-me">
+                            <input type="checkbox" name="remember">
+                            Remember me
+                        </label>
+
+                        <!-- Placeholder link for password recovery -->
+                        <a href="#" class="forgot-password">Forgot Password?</a>
+
+                    </div>
+
+                    <!-- Login button used to submit the form -->
                     <button type="submit" class="login-btn">Log In</button>
+
                 </form>
             </div>
         </div>
 
+        <!-- Right panel displaying branding and promotional text -->
         <div class="right-panel">
+
+            <!-- Text overlay displayed on top of the background image -->
             <div class="overlay-content">
+
+                <!-- Main promotional heading -->
                 <h3>Carpentry Made Easy.</h3>
+
+                <!-- Supporting promotional text -->
                 <p>Everything you need in an easy dashboard.</p>
+
             </div>
         </div>
 
-    <script>
+       <script>
+        // Selects the eye icon used to toggle password visibility
         const togglePassword = document.querySelector(".toggle-password");
+
+        // Selects the password input field
         const password = document.querySelector("#password");
 
+        // Runs whenever the user clicks the eye icon
         togglePassword.addEventListener("click", function () {
+
+            // If the password is currently hidden, display it
             if (password.type === "password") {
                 password.type = "text";
+
+                // Change the icon from an eye to an eye with a slash
                 this.classList.remove("fa-eye");
                 this.classList.add("fa-eye-slash");
+
             } else {
+
+                // Otherwise, hide the password again
                 password.type = "password";
+
+                // Change the icon back to the normal eye
                 this.classList.remove("fa-eye-slash");
                 this.classList.add("fa-eye");
             }
         });
-    </script>
-
-
+</script>
 </body>
 </html>

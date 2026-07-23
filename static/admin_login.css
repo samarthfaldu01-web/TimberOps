@@ -194,7 +194,7 @@ body, html {
 }
 
 .brand-logo {
-    width: 150px;   /* Change this value */
-    height: 150px;   /* Keeps the proportions */
+    width: 80px;   /* Change this value */
+    height: 80px;   /* Keeps the proportions */
     margin-bottom: 30px;
 }

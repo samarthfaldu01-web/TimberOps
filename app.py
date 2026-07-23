@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 
 app = Flask(__name__)
-app.secret_key = 'TimberOps2026' 
+app.secret_key = 'TiberOps2026' 
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -21,3 +21,4 @@ def admin_login():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
