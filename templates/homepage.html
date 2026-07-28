@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!--
+==========================================================
+File: homepage.html
+Project: TimberOps
+
+Purpose:
+Displays the main TimberOps dashboard after a successful
+administrator login.
+
+Features:
+- Company logo
+- Scrollable sidebar navigation
+- Cardboard box inventory icon
+- Top navigation bar
+- Welcome card
+- Responsive layout
+==========================================================
+-->
+
+<html lang="en">
+
+<head>
+    <!-- Defines the character encoding used by the webpage -->
+    <meta charset="UTF-8">
+
+    <!-- Allows the layout to adjust to different screen sizes -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Text shown in the browser tab -->
+    <title>TimberOps | Dashboard</title>
+
+    <!-- Links the homepage stylesheet stored in the static folder -->
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='homepage.css') }}"
+    >
+
+    <!-- Imports Font Awesome icons used in the navigation -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
+</head>
+
+<body>
+
+    <!-- ==================================================
+         SIDEBAR NAVIGATION
+    =================================================== -->
+
+    <aside class="sidebar">
+
+        <!-- Company logo displayed at the top-left -->
+        <div class="logo-box">
+            <img
+                src="{{ url_for('static', filename='images/transparent-logo.png') }}"
+                alt="TimberOps Logo"
+                class="sidebar-logo"
+            >
+        </div>
+
+        <!-- Scrollable navigation menu -->
+        <nav class="sidebar-menu" aria-label="Dashboard navigation">
+
+            <!-- Home navigation button -->
+            <a
+                href="{{ url_for('home') }}"
+                class="sidebar-link active"
+                aria-label="Home"
+                title="Home"
+            >
+                <i class="fa-solid fa-house"></i>
+            </a>
+
+            <!-- Inventory navigation button using a cardboard box icon -->
+            <a
+                href="{{ url_for('stock_tracker') }}"
+                class="sidebar-link"
+                aria-label="Stock Tracker"
+                title="Stock Tracker"
+            >
+                <i class="fa-solid fa-box"></i>
+            </a>
+
+            <!-- Calendar navigation button -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Calendar"
+                title="Calendar"
+            >
+                <i class="fa-solid fa-calendar-days"></i>
+            </a>
+
+            <!-- Messages navigation button -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Messages"
+                title="Messages"
+            >
+                <i class="fa-solid fa-comment"></i>
+            </a>
+
+            <!-- Documents navigation button -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Documents"
+                title="Documents"
+            >
+                <i class="fa-solid fa-file-lines"></i>
+            </a>
+
+            <!-- Information navigation button -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Information"
+                title="Information"
+            >
+                <i class="fa-solid fa-circle-info"></i>
+            </a>
+
+            <!-- Favourites navigation button -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Favourites"
+                title="Favourites"
+            >
+                <i class="fa-solid fa-star"></i>
+            </a>
+
+            <!-- Reports navigation button -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Reports"
+                title="Reports"
+            >
+                <i class="fa-solid fa-chart-column"></i>
+            </a>
+
+            <!-- Settings navigation button -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Settings"
+                title="Settings"
+            >
+                <i class="fa-solid fa-gear"></i>
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+    <!-- ==================================================
+         MAIN DASHBOARD AREA
+    =================================================== -->
+
+    <div class="main-container">
+
+        <!-- Top navigation bar -->
+        <header class="top-bar">
+
+            <!-- Menu button reserved for future sidebar functionality -->
+            <button
+                type="button"
+                class="menu-button"
+                aria-label="Open navigation menu"
+                title="Menu"
+            >
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <!-- Company name displayed in the centre -->
+            <div class="brand-name">
+                TimberOps
+            </div>
+
+            <!-- Administrator profile icon -->
+            <div
+                class="profile-icon"
+                aria-label="Administrator profile"
+                title="Administrator profile"
+            >
+                <i class="fa-solid fa-user"></i>
+            </div>
+
+        </header>
+
+
+        <!-- ==================================================
+             MAIN PAGE CONTENT
+        =================================================== -->
+
+        <main class="content">
+
+            <!-- Current page heading -->
+            <h1 class="page-title">Home</h1>
+
+            <!-- Main welcome card -->
+            <section class="welcome-card">
+
+                <!-- Welcome text -->
+                <div class="welcome-text">
+                    <h2>Welcome to TimberOps</h2>
+
+                    <p>
+                        Manage your carpentry operations quickly and efficiently.
+                    </p>
+                </div>
+
+                <!-- Carpentry image -->
+                <img
+                    src="{{ url_for('static', filename='images/carpentry_img.jpg') }}"
+                    alt="Carpentry tools and timber"
+                    class="timber-image"
+                >
+
+            </section>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

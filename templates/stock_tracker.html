@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<!--
+==========================================================
+File: stock_tracker.html
+Project: TimberOps
+
+Purpose:
+Displays the TimberOps stock tracking interface.
+
+Current features:
+- Stock overview cards
+- Search and filter controls
+- Stock table
+- Available suppliers section
+- Navigation back to the homepage
+
+Future features:
+- Database connection
+- Add, edit and delete stock records
+- Supplier API integration
+- Low-stock notifications
+==========================================================
+-->
+
+<html lang="en">
+
+<head>
+    <!-- Defines the webpage character encoding -->
+    <meta charset="UTF-8">
+
+    <!-- Makes the page responsive on different devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Browser tab title -->
+    <title>Stock Tracker | TimberOps</title>
+
+    <!-- Links the Stock Tracker stylesheet -->
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='stock_tracker.css') }}"
+    >
+
+    <!-- Imports Font Awesome icons -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
+</head>
+
+<body>
+
+    <!-- ==================================================
+         SIDEBAR NAVIGATION
+    =================================================== -->
+
+    <aside class="sidebar">
+
+        <!-- TimberOps logo -->
+        <div class="logo-box">
+            <img
+                src="{{ url_for('static', filename='images/transparent-logo.png') }}"
+                alt="TimberOps Logo"
+                class="sidebar-logo"
+            >
+        </div>
+
+        <!-- Scrollable navigation menu -->
+        <nav class="sidebar-menu" aria-label="Dashboard navigation">
+
+            <!-- Home -->
+            <a
+                href="{{ url_for('home') }}"
+                class="sidebar-link"
+                aria-label="Home"
+                title="Home"
+            >
+                <i class="fa-solid fa-house"></i>
+            </a>
+
+            <!-- Stock Tracker -->
+            <a
+                href="{{ url_for('stock_tracker') }}"
+                class="sidebar-link active"
+                aria-label="Stock Tracker"
+                title="Stock Tracker"
+            >
+                <i class="fa-solid fa-box"></i>
+            </a>
+
+            <!-- Calendar placeholder -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Calendar"
+                title="Calendar"
+            >
+                <i class="fa-solid fa-calendar-days"></i>
+            </a>
+
+            <!-- Messages placeholder -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Messages"
+                title="Messages"
+            >
+                <i class="fa-solid fa-comment"></i>
+            </a>
+
+            <!-- Documents placeholder -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Documents"
+                title="Documents"
+            >
+                <i class="fa-solid fa-file-lines"></i>
+            </a>
+
+            <!-- Information placeholder -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Information"
+                title="Information"
+            >
+                <i class="fa-solid fa-circle-info"></i>
+            </a>
+
+            <!-- Favourites placeholder -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Favourites"
+                title="Favourites"
+            >
+                <i class="fa-solid fa-star"></i>
+            </a>
+
+            <!-- Reports placeholder -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Reports"
+                title="Reports"
+            >
+                <i class="fa-solid fa-chart-column"></i>
+            </a>
+
+            <!-- Settings placeholder -->
+            <a
+                href="#"
+                class="sidebar-link"
+                aria-label="Settings"
+                title="Settings"
+            >
+                <i class="fa-solid fa-gear"></i>
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+    <!-- ==================================================
+         MAIN STOCK TRACKER AREA
+    =================================================== -->
+
+    <div class="main-container">
+
+        <!-- Top navigation bar -->
+        <header class="top-bar">
+
+            <!-- Menu button reserved for future functionality -->
+            <button
+                type="button"
+                class="menu-button"
+                aria-label="Open navigation menu"
+                title="Menu"
+            >
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <!-- Company name -->
+            <div class="brand-name">
+                TimberOps
+            </div>
+
+            <!-- Administrator profile icon -->
+            <div
+                class="profile-icon"
+                aria-label="Administrator profile"
+                title="Administrator profile"
+            >
+                <i class="fa-solid fa-user"></i>
+            </div>
+
+        </header>
+
+
+        <!-- ==================================================
+             PAGE CONTENT
+        =================================================== -->
+
+        <main class="content">
+
+            <!-- Page heading and Add Stock button -->
+            <section class="page-heading">
+
+                <div>
+                    <h1>Stock Tracker</h1>
+
+                    <p>
+                        View and manage TimberOps stock levels.
+                    </p>
+                </div>
+
+                <!-- Future button for adding database records -->
+                <button
+                    type="button"
+                    class="add-stock-button"
+                    title="Add a new stock item"
+                >
+                    <i class="fa-solid fa-plus"></i>
+                    Add Stock
+                </button>
+
+            </section>
+
+
+            <!-- ==================================================
+                 STOCK SUMMARY CARDS
+            =================================================== -->
+
+            <section class="summary-grid">
+
+                <!-- Total stock items -->
+                <article class="summary-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+
+                    <div>
+                        <p>Total Stock Items</p>
+                        <h2>24</h2>
+                    </div>
+
+                </article>
+
+                <!-- Low-stock items -->
+                <article class="summary-card warning-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+
+                    <div>
+                        <p>Low Stock Items</p>
+                        <h2>4</h2>
+                    </div>
+
+                </article>
+
+                <!-- Out-of-stock items -->
+                <article class="summary-card danger-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+
+                    <div>
+                        <p>Out of Stock</p>
+                        <h2>2</h2>
+                    </div>
+
+                </article>
+
+                <!-- Supplier count -->
+                <article class="summary-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-truck"></i>
+                    </div>
+
+                    <div>
+                        <p>Available Suppliers</p>
+                        <h2>6</h2>
+                    </div>
+
+                </article>
+
+            </section>
+
+
+            <!-- ==================================================
+                 STOCK CONTROLS
+            =================================================== -->
+
+            <section class="stock-panel">
+
+                <div class="panel-heading">
+                    <div>
+                        <h2>Current Stock</h2>
+                        <p>Search and review current inventory records.</p>
+                    </div>
+                </div>
+
+                <!-- Search and filter controls -->
+                <div class="stock-controls">
+
+                    <!-- Search field -->
+                    <div class="search-container">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+
+                        <input
+                            type="search"
+                            id="stock-search"
+                            name="stock-search"
+                            placeholder="Search stock..."
+                            aria-label="Search stock"
+                            maxlength="100"
+                        >
+                    </div>
+
+                    <!-- Category filter -->
+                    <label class="filter-group" for="category-filter">
+                        <span>Category</span>
+
+                        <select
+                            id="category-filter"
+                            name="category-filter"
+                            aria-label="Filter stock by category"
+                        >
+                            <option value="all">All Categories</option>
+                            <option value="timber">Timber</option>
+                            <option value="hardware">Hardware</option>
+                            <option value="tools">Tools</option>
+                            <option value="finishes">Finishes</option>
+                        </select>
+                    </label>
+
+                    <!-- Stock status filter -->
+                    <label class="filter-group" for="status-filter">
+                        <span>Status</span>
+
+                        <select
+                            id="status-filter"
+                            name="status-filter"
+                            aria-label="Filter stock by status"
+                        >
+                            <option value="all">All Statuses</option>
+                            <option value="available">Available</option>
+                            <option value="low">Low Stock</option>
+                            <option value="out">Out of Stock</option>
+                        </select>
+                    </label>
+
+                </div>
+
+
+                <!-- ==================================================
+                     STOCK TABLE
+                =================================================== -->
+
+                <div class="table-container">
+
+                    <table class="stock-table">
+
+                        <thead>
+                            <tr>
+                                <th scope="col">Item ID</th>
+                                <th scope="col">Stock Item</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Quantity</th>
+                                <th scope="col">Minimum Level</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            <!-- Temporary stock data.
+                                 These rows will later be generated by Flask
+                                 using records stored in a database. -->
+
+                            <tr>
+                                <td>STK-001</td>
+                                <td>Pine Timber Boards</td>
+                                <td>Timber</td>
+                                <td>48</td>
+                                <td>15</td>
+                                <td>
+                                    <span class="status available">
+                                        Available
+                                    </span>
+                                </td>
+                                <td class="action-buttons">
+                                    <button
+                                        type="button"
+                                        class="edit-button"
+                                        aria-label="Edit Pine Timber Boards"
+                                        title="Edit item"
+                                    >
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="delete-button"
+                                        aria-label="Delete Pine Timber Boards"
+                                        title="Delete item"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>STK-002</td>
+                                <td>Oak Timber Boards</td>
+                                <td>Timber</td>
+                                <td>8</td>
+                                <td>12</td>
+                                <td>
+                                    <span class="status low">
+                                        Low Stock
+                                    </span>
+                                </td>
+                                <td class="action-buttons">
+                                    <button
+                                        type="button"
+                                        class="edit-button"
+                                        aria-label="Edit Oak Timber Boards"
+                                        title="Edit item"
+                                    >
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="delete-button"
+                                        aria-label="Delete Oak Timber Boards"
+                                        title="Delete item"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>STK-003</td>
+                                <td>Wood Screws</td>
+                                <td>Hardware</td>
+                                <td>125</td>
+                                <td>40</td>
+                                <td>
+                                    <span class="status available">
+                                        Available
+                                    </span>
+                                </td>
+                                <td class="action-buttons">
+                                    <button
+                                        type="button"
+                                        class="edit-button"
+                                        aria-label="Edit Wood Screws"
+                                        title="Edit item"
+                                    >
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="delete-button"
+                                        aria-label="Delete Wood Screws"
+                                        title="Delete item"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>STK-004</td>
+                                <td>Wood Adhesive</td>
+                                <td>Finishes</td>
+                                <td>0</td>
+                                <td>10</td>
+                                <td>
+                                    <span class="status out">
+                                        Out of Stock
+                                    </span>
+                                </td>
+                                <td class="action-buttons">
+                                    <button
+                                        type="button"
+                                        class="edit-button"
+                                        aria-label="Edit Wood Adhesive"
+                                        title="Edit item"
+                                    >
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="delete-button"
+                                        aria-label="Delete Wood Adhesive"
+                                        title="Delete item"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- ==================================================
+                 AVAILABLE SUPPLIERS
+            =================================================== -->
+
+            <section class="supplier-panel">
+
+                <div class="panel-heading">
+                    <div>
+                        <h2>Available Suppliers</h2>
+
+                        <p>
+                            Supplier information will later be loaded using
+                            an external API.
+                        </p>
+                    </div>
+
+                    <!-- Placeholder refresh button for future API calls -->
+                    <button
+                        type="button"
+                        class="refresh-button"
+                        title="Refresh supplier information"
+                    >
+                        <i class="fa-solid fa-rotate"></i>
+                        Refresh
+                    </button>
+                </div>
+
+                <div class="supplier-grid">
+
+                    <!-- Temporary supplier card -->
+                    <article class="supplier-card">
+                        <div class="supplier-icon">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+
+                        <div>
+                            <h3>Melbourne Timber Supplies</h3>
+                            <p>Timber and construction materials</p>
+                            <span>API connection pending</span>
+                        </div>
+                    </article>
+
+                    <!-- Temporary supplier card -->
+                    <article class="supplier-card">
+                        <div class="supplier-icon">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+
+                        <div>
+                            <h3>Carpentry Hardware Direct</h3>
+                            <p>Hardware, fasteners and workshop tools</p>
+                            <span>API connection pending</span>
+                        </div>
+                    </article>
+
+                    <!-- Temporary supplier card -->
+                    <article class="supplier-card">
+                        <div class="supplier-icon">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+
+                        <div>
+                            <h3>Australian Wood Products</h3>
+                            <p>Timber boards, panels and finishes</p>
+                            <span>API connection pending</span>
+                        </div>
+                    </article>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

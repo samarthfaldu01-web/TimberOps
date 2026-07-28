@@ -1,0 +1,1027 @@
+/*
+==========================================================
+File: stock_tracker.css
+Project: TimberOps
+
+Purpose:
+Styles the Stock Tracker page.
+
+Current interface sections:
+- Scrollable sidebar
+- Header
+- Stock summary cards
+- Search and filtering controls
+- Stock table
+- Available suppliers
+- Responsive layout
+==========================================================
+*/
+
+
+/* Imports the Kameron font */
+@import url('https://fonts.googleapis.com/css2?family=Kameron:wght@400;500;600;700&display=swap');
+
+
+/* ======================================================
+   GLOBAL RESET
+====================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+html {
+    min-height: 100%;
+}
+
+
+body {
+    min-height: 100vh;
+
+    font-family: 'Kameron', serif;
+
+    background-color: #f7f3e8;
+    color: #1f2937;
+
+    overflow-x: hidden;
+}
+
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+
+/* ======================================================
+   SIDEBAR
+====================================================== */
+
+.sidebar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 100px;
+    height: 100vh;
+
+    background-color: #f0ead6;
+    border-right: 2px solid #d8cfb2;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    overflow: hidden;
+
+    z-index: 1000;
+}
+
+
+/* ======================================================
+   SIDEBAR LOGO
+====================================================== */
+
+.logo-box {
+    width: 100%;
+    min-height: 90px;
+
+    background-color: #d9a45f;
+    border-bottom: 2px solid #c89452;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 10px;
+
+    flex-shrink: 0;
+}
+
+
+.sidebar-logo {
+    width: 80px;
+    max-width: 100%;
+
+    height: 68px;
+
+    object-fit: contain;
+
+    display: block;
+}
+
+
+/* ======================================================
+   SIDEBAR MENU
+====================================================== */
+
+.sidebar-menu {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    flex: 1;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding: 12px 0;
+
+    scrollbar-width: thin;
+    scrollbar-color: #b9a474 #f0ead6;
+}
+
+
+.sidebar-link {
+    width: 100%;
+    min-height: 68px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    flex-shrink: 0;
+
+    color: #5d7138;
+    font-size: 27px;
+
+    text-decoration: none;
+
+    border-bottom: 1px solid #e2dac1;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.sidebar-link:hover {
+    background-color: #e5dcc1;
+    color: #34451f;
+}
+
+
+.sidebar-link.active {
+    background-color: #dfd5b7;
+    color: #34451f;
+
+    border-left: 4px solid #687d3e;
+}
+
+
+.sidebar-link:active {
+    transform: scale(0.94);
+}
+
+
+.sidebar-menu::-webkit-scrollbar {
+    width: 7px;
+}
+
+
+.sidebar-menu::-webkit-scrollbar-track {
+    background-color: #f0ead6;
+}
+
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background-color: #b9a474;
+
+    border-radius: 10px;
+}
+
+
+/* ======================================================
+   MAIN CONTAINER
+====================================================== */
+
+.main-container {
+    margin-left: 100px;
+
+    min-height: 100vh;
+}
+
+
+/* ======================================================
+   TOP BAR
+====================================================== */
+
+.top-bar {
+    height: 90px;
+
+    background-color: #fbf8ef;
+    border-bottom: 2px solid #d8cfb2;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 0 35px;
+
+    position: sticky;
+    top: 0;
+
+    z-index: 500;
+}
+
+
+.menu-button {
+    width: 48px;
+    height: 48px;
+
+    border: none;
+    border-radius: 8px;
+
+    background-color: transparent;
+
+    color: #5d7138;
+    font-size: 30px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    cursor: pointer;
+}
+
+
+.menu-button:hover {
+    background-color: #ece4ce;
+}
+
+
+.brand-name {
+    background-color: #d9a45f;
+
+    color: #1f2937;
+
+    font-size: 30px;
+    font-weight: 700;
+
+    padding: 10px 28px;
+
+    border-radius: 8px;
+}
+
+
+.profile-icon {
+    width: 56px;
+    height: 56px;
+
+    border: 4px solid #6d8045;
+    border-radius: 50%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    color: #5d7138;
+    font-size: 25px;
+
+    background-color: #fbf8ef;
+}
+
+
+/* ======================================================
+   MAIN CONTENT
+====================================================== */
+
+.content {
+    padding: 34px 48px 65px;
+}
+
+
+/* ======================================================
+   PAGE HEADING
+====================================================== */
+
+.page-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 24px;
+
+    margin-bottom: 30px;
+}
+
+
+.page-heading h1 {
+    color: #1f2937;
+
+    font-size: 44px;
+    line-height: 1.2;
+
+    margin-bottom: 6px;
+}
+
+
+.page-heading p {
+    color: #697386;
+
+    font-size: 18px;
+}
+
+
+.add-stock-button,
+.refresh-button {
+    border: none;
+    border-radius: 9px;
+
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    gap: 9px;
+
+    cursor: pointer;
+
+    font-weight: 700;
+
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.add-stock-button {
+    padding: 13px 20px;
+
+    background-color: #667b3f;
+    color: #ffffff;
+}
+
+
+.add-stock-button:hover {
+    background-color: #4f6330;
+
+    transform: translateY(-1px);
+}
+
+
+/* ======================================================
+   SUMMARY CARDS
+====================================================== */
+
+.summary-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 18px;
+
+    margin-bottom: 28px;
+}
+
+
+.summary-card {
+    min-height: 125px;
+
+    background-color: #fffdf7;
+
+    border: 1px solid #ddd1af;
+    border-radius: 15px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 17px;
+
+    padding: 22px;
+
+    box-shadow: 0 6px 18px rgba(80, 68, 40, 0.06);
+}
+
+
+.summary-icon {
+    width: 52px;
+    height: 52px;
+
+    border-radius: 12px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-color: #e6edd8;
+    color: #5d7138;
+
+    font-size: 23px;
+
+    flex-shrink: 0;
+}
+
+
+.summary-card p {
+    color: #6b7280;
+
+    font-size: 15px;
+
+    margin-bottom: 5px;
+}
+
+
+.summary-card h2 {
+    color: #1f2937;
+
+    font-size: 30px;
+}
+
+
+.warning-card .summary-icon {
+    background-color: #fff0c9;
+    color: #9a6500;
+}
+
+
+.danger-card .summary-icon {
+    background-color: #f9d8d8;
+    color: #aa3131;
+}
+
+
+/* ======================================================
+   SHARED PANELS
+====================================================== */
+
+.stock-panel,
+.supplier-panel {
+    background-color: #fffdf7;
+
+    border: 1px solid #ddd1af;
+    border-radius: 17px;
+
+    padding: 25px;
+
+    box-shadow: 0 7px 20px rgba(80, 68, 40, 0.06);
+}
+
+
+.stock-panel {
+    margin-bottom: 28px;
+}
+
+
+.panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 20px;
+
+    margin-bottom: 22px;
+}
+
+
+.panel-heading h2 {
+    color: #1f2937;
+
+    font-size: 27px;
+
+    margin-bottom: 5px;
+}
+
+
+.panel-heading p {
+    color: #6b7280;
+
+    font-size: 16px;
+}
+
+
+/* ======================================================
+   SEARCH AND FILTERS
+====================================================== */
+
+.stock-controls {
+    display: grid;
+
+    grid-template-columns: minmax(230px, 1fr) 190px 190px;
+
+    gap: 16px;
+
+    margin-bottom: 23px;
+}
+
+
+.search-container {
+    position: relative;
+}
+
+
+.search-container i {
+    position: absolute;
+
+    top: 50%;
+    left: 15px;
+
+    transform: translateY(-50%);
+
+    color: #8a927c;
+}
+
+
+.search-container input {
+    width: 100%;
+    height: 46px;
+
+    padding: 10px 15px 10px 43px;
+
+    border: 1px solid #d7ceb3;
+    border-radius: 9px;
+
+    background-color: #ffffff;
+
+    color: #1f2937;
+}
+
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+
+.filter-group span {
+    color: #5f6672;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.filter-group select {
+    height: 46px;
+
+    padding: 8px 12px;
+
+    border: 1px solid #d7ceb3;
+    border-radius: 9px;
+
+    background-color: #ffffff;
+
+    color: #1f2937;
+
+    cursor: pointer;
+}
+
+
+.search-container input:focus,
+.filter-group select:focus {
+    outline: 3px solid rgba(102, 123, 63, 0.2);
+
+    border-color: #667b3f;
+}
+
+
+/* ======================================================
+   STOCK TABLE
+====================================================== */
+
+.table-container {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.stock-table {
+    width: 100%;
+
+    min-width: 870px;
+
+    border-collapse: collapse;
+}
+
+
+.stock-table th,
+.stock-table td {
+    padding: 15px 14px;
+
+    text-align: left;
+
+    border-bottom: 1px solid #e6dfc9;
+}
+
+
+.stock-table th {
+    background-color: #f2ecd9;
+
+    color: #505a43;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+.stock-table td {
+    color: #303846;
+
+    font-size: 15px;
+}
+
+
+.stock-table tbody tr:hover {
+    background-color: #faf7ed;
+}
+
+
+/* ======================================================
+   STOCK STATUS
+====================================================== */
+
+.status {
+    display: inline-block;
+
+    min-width: 95px;
+
+    padding: 6px 10px;
+
+    border-radius: 20px;
+
+    text-align: center;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.status.available {
+    background-color: #dcebd3;
+    color: #41632e;
+}
+
+
+.status.low {
+    background-color: #fff0c9;
+    color: #926000;
+}
+
+
+.status.out {
+    background-color: #f5d5d5;
+    color: #9c2f2f;
+}
+
+
+/* ======================================================
+   TABLE ACTION BUTTONS
+====================================================== */
+
+.action-buttons {
+    white-space: nowrap;
+}
+
+
+.edit-button,
+.delete-button {
+    width: 35px;
+    height: 35px;
+
+    border: none;
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    margin-right: 5px;
+}
+
+
+.edit-button {
+    background-color: #e2ead5;
+    color: #4c6630;
+}
+
+
+.delete-button {
+    background-color: #f5dada;
+    color: #a03131;
+}
+
+
+.edit-button:hover,
+.delete-button:hover {
+    filter: brightness(0.94);
+}
+
+
+/* ======================================================
+   SUPPLIER SECTION
+====================================================== */
+
+.refresh-button {
+    padding: 11px 17px;
+
+    background-color: #ece5d1;
+    color: #526237;
+}
+
+
+.refresh-button:hover {
+    background-color: #ded5ba;
+}
+
+
+.supplier-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 17px;
+}
+
+
+.supplier-card {
+    min-height: 135px;
+
+    padding: 20px;
+
+    border: 1px solid #dfd5b8;
+    border-radius: 13px;
+
+    background-color: #faf7ee;
+
+    display: flex;
+    align-items: flex-start;
+
+    gap: 14px;
+}
+
+
+.supplier-icon {
+    width: 45px;
+    height: 45px;
+
+    border-radius: 10px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-color: #e5ead9;
+    color: #5d7138;
+
+    flex-shrink: 0;
+}
+
+
+.supplier-card h3 {
+    color: #293241;
+
+    font-size: 18px;
+
+    margin-bottom: 6px;
+}
+
+
+.supplier-card p {
+    color: #667080;
+
+    font-size: 14px;
+    line-height: 1.4;
+
+    margin-bottom: 9px;
+}
+
+
+.supplier-card span {
+    color: #92723e;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+/* ======================================================
+   KEYBOARD ACCESSIBILITY
+====================================================== */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 3px solid #9a7a45;
+    outline-offset: 2px;
+}
+
+
+/* ======================================================
+   TABLET RESPONSIVE LAYOUT
+====================================================== */
+
+@media (max-width: 1100px) {
+
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+
+    .supplier-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+@media (max-width: 900px) {
+
+    .sidebar {
+        width: 76px;
+    }
+
+
+    .main-container {
+        margin-left: 76px;
+    }
+
+
+    .logo-box {
+        min-height: 76px;
+
+        padding: 8px;
+    }
+
+
+    .sidebar-logo {
+        width: 60px;
+        height: 56px;
+    }
+
+
+    .sidebar-link {
+        min-height: 60px;
+
+        font-size: 23px;
+    }
+
+
+    .top-bar {
+        height: 76px;
+
+        padding: 0 22px;
+    }
+
+
+    .brand-name {
+        font-size: 23px;
+
+        padding: 8px 18px;
+    }
+
+
+    .profile-icon {
+        width: 48px;
+        height: 48px;
+
+        font-size: 21px;
+    }
+
+
+    .content {
+        padding: 28px;
+    }
+
+
+    .page-heading h1 {
+        font-size: 37px;
+    }
+
+
+    .stock-controls {
+        grid-template-columns: 1fr 1fr;
+    }
+
+
+    .search-container {
+        grid-column: 1 / -1;
+    }
+}
+
+
+/* ======================================================
+   MOBILE RESPONSIVE LAYOUT
+====================================================== */
+
+@media (max-width: 650px) {
+
+    .sidebar {
+        width: 68px;
+    }
+
+
+    .main-container {
+        margin-left: 68px;
+    }
+
+
+    .logo-box {
+        min-height: 68px;
+    }
+
+
+    .sidebar-logo {
+        width: 52px;
+        height: 48px;
+    }
+
+
+    .sidebar-link {
+        min-height: 56px;
+
+        font-size: 21px;
+    }
+
+
+    .top-bar {
+        height: 68px;
+
+        padding: 0 13px;
+    }
+
+
+    .brand-name {
+        font-size: 18px;
+
+        padding: 7px 12px;
+    }
+
+
+    .menu-button {
+        width: 38px;
+        height: 38px;
+
+        font-size: 23px;
+    }
+
+
+    .profile-icon {
+        width: 42px;
+        height: 42px;
+
+        border-width: 3px;
+
+        font-size: 18px;
+    }
+
+
+    .content {
+        padding: 23px 16px;
+    }
+
+
+    .page-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .page-heading h1 {
+        font-size: 32px;
+    }
+
+
+    .add-stock-button {
+        width: 100%;
+    }
+
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .stock-controls {
+        grid-template-columns: 1fr;
+    }
+
+
+    .search-container {
+        grid-column: auto;
+    }
+
+
+    .stock-panel,
+    .supplier-panel {
+        padding: 18px;
+    }
+
+
+    .panel-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .refresh-button {
+        width: 100%;
+    }
+}
