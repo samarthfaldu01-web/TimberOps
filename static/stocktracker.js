@@ -1,298 +1,62 @@
-/*
-==========================================================
-File: stock_tracker.js
-Project: TimberOps
-
-Purpose:
-Controls Stock Tracker modals, edit forms, stock adjustments,
-delete confirmation and flash messages.
-==========================================================
-*/
-
 document.addEventListener("DOMContentLoaded", function () {
 
     // =====================================================
-    // MODAL FUNCTIONS
+    // SIDEBAR TOGGLE
     // =====================================================
 
-    const modals = document.querySelectorAll(".modal");
+    const sidebar = document.getElementById(
+        "sidebar"
+    );
 
-    function openModal(modal) {
+    const mainContainer = document.getElementById(
+        "main-container"
+    );
 
-        if (!modal) {
-            return;
-        }
-
-        modal.classList.add("modal-open");
-
-        modal.setAttribute(
-            "aria-hidden",
-            "false"
-        );
-
-        document.body.classList.add(
-            "modal-active"
-        );
-
-        const firstInput = modal.querySelector(
-            "input, select, textarea, button"
-        );
-
-        if (firstInput) {
-            firstInput.focus();
-        }
-    }
+    const sidebarToggle = document.getElementById(
+        "sidebar-toggle"
+    );
 
 
-    function closeModal(modal) {
+    if (
+        sidebarToggle
+        && sidebar
+        && mainContainer
+    ) {
 
-        if (!modal) {
-            return;
-        }
+        sidebarToggle.addEventListener(
+            "click",
+            function () {
 
-        modal.classList.remove(
-            "modal-open"
-        );
+                sidebar.classList.toggle(
+                    "collapsed"
+                );
 
-        modal.setAttribute(
-            "aria-hidden",
-            "true"
-        );
-
-        document.body.classList.remove(
-            "modal-active"
+                mainContainer.classList.toggle(
+                    "sidebar-collapsed"
+                );
+            }
         );
     }
 
 
-    // Closes modals using the X button or Cancel button.
+    // =====================================================
+    // UNFINISHED NAVIGATION BUTTONS
+    // =====================================================
+
     document.querySelectorAll(
-        ".modal-close, .modal-cancel"
+        ".coming-soon"
     ).forEach(function (button) {
 
         button.addEventListener(
             "click",
             function () {
 
-                closeModal(
-                    button.closest(".modal")
+                alert(
+                    button.dataset.feature
+                    + " will be added later."
                 );
-
             }
         );
-
-    });
-
-
-    // Closes modals when the dark background is clicked.
-    document.querySelectorAll(
-        ".modal-background"
-    ).forEach(function (background) {
-
-        background.addEventListener(
-            "click",
-            function () {
-
-                closeModal(
-                    background.closest(".modal")
-                );
-
-            }
-        );
-
-    });
-
-
-    // Closes the currently open modal when Escape is pressed.
-    document.addEventListener(
-        "keydown",
-        function (event) {
-
-            if (event.key === "Escape") {
-
-                const openModalElement =
-                    document.querySelector(
-                        ".modal.modal-open"
-                    );
-
-                closeModal(
-                    openModalElement
-                );
-            }
-
-        }
-    );
-
-
-    // =====================================================
-    // ADD STOCK MODAL
-    // =====================================================
-
-    const addStockButton = document.getElementById(
-        "open-add-modal"
-    );
-
-    const addStockModal = document.getElementById(
-        "add-stock-modal"
-    );
-
-    if (addStockButton && addStockModal) {
-
-        addStockButton.addEventListener(
-            "click",
-            function () {
-
-                openModal(
-                    addStockModal
-                );
-
-            }
-        );
-
-    }
-
-
-    // =====================================================
-    // EDIT STOCK MODAL
-    // =====================================================
-
-    const editStockModal = document.getElementById(
-        "edit-stock-modal"
-    );
-
-    const editStockForm = document.getElementById(
-        "edit-stock-form"
-    );
-
-    document.querySelectorAll(
-        ".edit-button"
-    ).forEach(function (button) {
-
-        button.addEventListener(
-            "click",
-            function () {
-
-                const itemId =
-                    button.dataset.itemId;
-
-                editStockForm.action =
-                    "/stock/"
-                    + itemId
-                    + "/edit";
-
-
-                document.getElementById(
-                    "edit-item-code"
-                ).value =
-                    button.dataset.itemCode;
-
-
-                document.getElementById(
-                    "edit-item-name"
-                ).value =
-                    button.dataset.itemName;
-
-
-                document.getElementById(
-                    "edit-category"
-                ).value =
-                    button.dataset.category;
-
-
-                document.getElementById(
-                    "edit-quantity"
-                ).value =
-                    button.dataset.quantity;
-
-
-                document.getElementById(
-                    "edit-minimum"
-                ).value =
-                    button.dataset.minimum;
-
-
-                document.getElementById(
-                    "edit-unit"
-                ).value =
-                    button.dataset.unit;
-
-
-                document.getElementById(
-                    "edit-location"
-                ).value =
-                    button.dataset.location;
-
-
-                document.getElementById(
-                    "edit-notes"
-                ).value =
-                    button.dataset.notes;
-
-
-                openModal(
-                    editStockModal
-                );
-
-            }
-        );
-
-    });
-
-
-    // =====================================================
-    // STOCK ADJUSTMENT MODAL
-    // =====================================================
-
-    const adjustStockModal = document.getElementById(
-        "adjust-stock-modal"
-    );
-
-    const adjustStockForm = document.getElementById(
-        "adjust-stock-form"
-    );
-
-    const adjustDescription = document.getElementById(
-        "adjust-item-description"
-    );
-
-    document.querySelectorAll(
-        ".adjust-button"
-    ).forEach(function (button) {
-
-        button.addEventListener(
-            "click",
-            function () {
-
-                const itemId =
-                    button.dataset.itemId;
-
-                const itemName =
-                    button.dataset.itemName;
-
-                const currentQuantity =
-                    button.dataset.currentQuantity;
-
-
-                adjustStockForm.action =
-                    "/stock/"
-                    + itemId
-                    + "/adjust";
-
-
-                adjustDescription.textContent =
-                    itemName
-                    + " currently has "
-                    + currentQuantity
-                    + " in stock.";
-
-
-                openModal(
-                    adjustStockModal
-                );
-
-            }
-        );
-
     });
 
 
@@ -308,61 +72,30 @@ document.addEventListener("DOMContentLoaded", function () {
             "submit",
             function (event) {
 
-                const deleteButton =
-                    form.querySelector(
-                        ".delete-button"
-                    );
+                const deleteButton = form.querySelector(
+                    ".delete-button"
+                );
 
-                const itemName =
-                    deleteButton.dataset.itemName;
+                const itemName = deleteButton
+                    ? deleteButton.dataset.itemName
+                    : "this item";
 
                 const confirmed = window.confirm(
-                    "Permanently delete "
+                    "Delete "
                     + itemName
-                    + "?\n\n"
-                    + "This will also delete its stock history."
+                    + " permanently?"
                 );
 
                 if (!confirmed) {
                     event.preventDefault();
                 }
-
             }
         );
-
     });
 
 
     // =====================================================
-    // AUTOMATIC FILTERING
-    // =====================================================
-
-    const filterForm = document.getElementById(
-        "stock-filter-form"
-    );
-
-    const filterSelects = document.querySelectorAll(
-        "#category-filter, #status-filter, #sort-filter"
-    );
-
-    filterSelects.forEach(function (select) {
-
-        select.addEventListener(
-            "change",
-            function () {
-
-                if (filterForm) {
-                    filterForm.submit();
-                }
-
-            }
-        );
-
-    });
-
-
-    // =====================================================
-    // FLASH MESSAGES
+    // FLASH MESSAGE CLOSE BUTTON
     // =====================================================
 
     document.querySelectorAll(
@@ -373,44 +106,15 @@ document.addEventListener("DOMContentLoaded", function () {
             "click",
             function () {
 
-                const message =
-                    button.closest(
-                        ".flash-message"
-                    );
+                const message = button.closest(
+                    ".flash-message"
+                );
 
                 if (message) {
                     message.remove();
                 }
-
             }
         );
-
     });
-
-
-    // Automatically removes flash messages after six seconds.
-    window.setTimeout(
-        function () {
-
-            document.querySelectorAll(
-                ".flash-message"
-            ).forEach(function (message) {
-
-                message.classList.add(
-                    "flash-message-hidden"
-                );
-
-                window.setTimeout(
-                    function () {
-                        message.remove();
-                    },
-                    300
-                );
-
-            });
-
-        },
-        6000
-    );
 
 });

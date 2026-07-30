@@ -1,27 +1,4 @@
 <!DOCTYPE html>
-<!--
-==========================================================
-File: stock_tracker.html
-Project: TimberOps
-
-Purpose:
-Provides a complete stock-management interface.
-
-Functional features:
-- Add stock
-- Edit stock
-- Delete stock
-- Check stock in
-- Check stock out
-- Search
-- Category filtering
-- Status filtering
-- Sorting
-- Stock history
-- Blank supplier API section
-==========================================================
--->
-
 <html lang="en">
 
 <head>
@@ -34,13 +11,11 @@ Functional features:
 
     <title>Stock Tracker | TimberOps</title>
 
-    <!-- Stock Tracker stylesheet -->
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='stock_tracker.css') }}"
     >
 
-    <!-- Font Awesome icons -->
     <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -59,7 +34,7 @@ Functional features:
 
             <img
                 src="{{ url_for('static', filename='images/transparent-logo.png') }}"
-                alt="TimberOps Logo"
+                alt="TimberOps logo"
                 class="sidebar-logo"
             >
 
@@ -73,8 +48,8 @@ Functional features:
             <a
                 href="{{ url_for('home') }}"
                 class="sidebar-link"
-                aria-label="Home"
                 title="Home"
+                aria-label="Home"
             >
                 <i class="fa-solid fa-house"></i>
             </a>
@@ -82,8 +57,8 @@ Functional features:
             <a
                 href="{{ url_for('stock_tracker') }}"
                 class="sidebar-link active"
-                aria-label="Stock Tracker"
                 title="Stock Tracker"
+                aria-label="Stock Tracker"
             >
                 <i class="fa-solid fa-box"></i>
             </a>
@@ -91,8 +66,8 @@ Functional features:
             <a
                 href="#"
                 class="sidebar-link"
-                aria-label="Calendar"
                 title="Calendar"
+                aria-label="Calendar"
             >
                 <i class="fa-solid fa-calendar-days"></i>
             </a>
@@ -100,8 +75,8 @@ Functional features:
             <a
                 href="#"
                 class="sidebar-link"
-                aria-label="Messages"
                 title="Messages"
+                aria-label="Messages"
             >
                 <i class="fa-solid fa-comment"></i>
             </a>
@@ -109,8 +84,8 @@ Functional features:
             <a
                 href="#"
                 class="sidebar-link"
-                aria-label="Documents"
                 title="Documents"
+                aria-label="Documents"
             >
                 <i class="fa-solid fa-file-lines"></i>
             </a>
@@ -118,8 +93,8 @@ Functional features:
             <a
                 href="#"
                 class="sidebar-link"
-                aria-label="Information"
                 title="Information"
+                aria-label="Information"
             >
                 <i class="fa-solid fa-circle-info"></i>
             </a>
@@ -127,17 +102,8 @@ Functional features:
             <a
                 href="#"
                 class="sidebar-link"
-                aria-label="Favourites"
-                title="Favourites"
-            >
-                <i class="fa-solid fa-star"></i>
-            </a>
-
-            <a
-                href="#"
-                class="sidebar-link"
-                aria-label="Reports"
                 title="Reports"
+                aria-label="Reports"
             >
                 <i class="fa-solid fa-chart-column"></i>
             </a>
@@ -145,8 +111,8 @@ Functional features:
             <a
                 href="#"
                 class="sidebar-link"
-                aria-label="Settings"
                 title="Settings"
+                aria-label="Settings"
             >
                 <i class="fa-solid fa-gear"></i>
             </a>
@@ -157,7 +123,7 @@ Functional features:
 
 
     <!-- ==================================================
-         MAIN CONTAINER
+         MAIN PAGE
     =================================================== -->
 
     <div class="main-container">
@@ -179,6 +145,7 @@ Functional features:
             <form
                 action="{{ url_for('logout') }}"
                 method="POST"
+                class="logout-form"
             >
                 <button
                     type="submit"
@@ -193,10 +160,6 @@ Functional features:
         </header>
 
 
-        <!-- ==================================================
-             PAGE CONTENT
-        =================================================== -->
-
         <main class="content">
 
             <!-- Flash messages -->
@@ -210,7 +173,9 @@ Functional features:
 
                             <div class="flash-message {{ category }}">
 
-                                <span>{{ message }}</span>
+                                <span>
+                                    {{ message }}
+                                </span>
 
                                 <button
                                     type="button"
@@ -239,19 +204,38 @@ Functional features:
                     <h1>Stock Tracker</h1>
 
                     <p>
-                        Add, remove, search and manage TimberOps stock.
+                        Manage carpentry materials, hardware,
+                        tools and workshop supplies.
                     </p>
 
                 </div>
 
-                <button
-                    type="button"
-                    class="primary-button"
-                    id="open-add-modal"
-                >
-                    <i class="fa-solid fa-plus"></i>
-                    Add Stock Item
-                </button>
+                <div class="heading-actions">
+
+                    <a
+                        href="{{ url_for(
+                            'export_stock_csv',
+                            search=search_text,
+                            category=selected_category,
+                            status=selected_status,
+                            sort=selected_sort
+                        ) }}"
+                        class="secondary-button"
+                    >
+                        <i class="fa-solid fa-file-csv"></i>
+                        Export CSV
+                    </a>
+
+                    <button
+                        type="button"
+                        class="primary-button"
+                        id="open-add-modal"
+                    >
+                        <i class="fa-solid fa-plus"></i>
+                        Add Stock Item
+                    </button>
+
+                </div>
 
             </section>
 
@@ -269,13 +253,11 @@ Functional features:
                     </div>
 
                     <div>
-
-                        <span>Total Items</span>
+                        <span>Stock Records</span>
 
                         <strong>
                             {{ summary.total_items }}
                         </strong>
-
                     </div>
 
                 </article>
@@ -288,13 +270,28 @@ Functional features:
                     </div>
 
                     <div>
-
                         <span>Total Quantity</span>
 
                         <strong>
                             {{ summary.total_quantity }}
                         </strong>
+                    </div>
 
+                </article>
+
+
+                <article class="summary-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-dollar-sign"></i>
+                    </div>
+
+                    <div>
+                        <span>Stock Value</span>
+
+                        <strong>
+                            ${{ "%.2f"|format(summary.total_value) }}
+                        </strong>
                     </div>
 
                 </article>
@@ -307,13 +304,11 @@ Functional features:
                     </div>
 
                     <div>
-
                         <span>Low Stock</span>
 
                         <strong>
                             {{ summary.low_stock_items }}
                         </strong>
-
                     </div>
 
                 </article>
@@ -326,13 +321,11 @@ Functional features:
                     </div>
 
                     <div>
-
                         <span>Out of Stock</span>
 
                         <strong>
                             {{ summary.out_of_stock_items }}
                         </strong>
-
                     </div>
 
                 </article>
@@ -341,7 +334,7 @@ Functional features:
 
 
             <!-- ==================================================
-                 FILTERS
+                 STOCK TABLE PANEL
             =================================================== -->
 
             <section class="panel">
@@ -353,13 +346,15 @@ Functional features:
                         <h2>Current Stock</h2>
 
                         <p>
-                            Search, filter and update inventory records.
+                            {{ total_records }} matching stock record(s).
                         </p>
 
                     </div>
 
                 </div>
 
+
+                <!-- Search and filtering -->
                 <form
                     action="{{ url_for('stock_tracker') }}"
                     method="GET"
@@ -374,9 +369,8 @@ Functional features:
                         <input
                             type="search"
                             name="search"
-                            id="stock-search"
                             value="{{ search_text }}"
-                            placeholder="Search code, name, category or location"
+                            placeholder="Search name, code, specification or location"
                             maxlength="100"
                         >
 
@@ -386,7 +380,7 @@ Functional features:
                     <select
                         name="category"
                         id="category-filter"
-                        aria-label="Category filter"
+                        aria-label="Filter by category"
                     >
                         <option value="">
                             All Categories
@@ -410,7 +404,7 @@ Functional features:
                     <select
                         name="status"
                         id="status-filter"
-                        aria-label="Status filter"
+                        aria-label="Filter by status"
                     >
                         <option value="">
                             All Statuses
@@ -451,8 +445,8 @@ Functional features:
                         aria-label="Sort stock"
                     >
                         <option
-                            value="newest"
-                            {% if selected_sort == "newest" %}
+                            value="updated_desc"
+                            {% if selected_sort == "updated_desc" %}
                                 selected
                             {% endif %}
                         >
@@ -460,8 +454,8 @@ Functional features:
                         </option>
 
                         <option
-                            value="oldest"
-                            {% if selected_sort == "oldest" %}
+                            value="updated_asc"
+                            {% if selected_sort == "updated_asc" %}
                                 selected
                             {% endif %}
                         >
@@ -469,8 +463,8 @@ Functional features:
                         </option>
 
                         <option
-                            value="name_az"
-                            {% if selected_sort == "name_az" %}
+                            value="name_asc"
+                            {% if selected_sort == "name_asc" %}
                                 selected
                             {% endif %}
                         >
@@ -478,8 +472,8 @@ Functional features:
                         </option>
 
                         <option
-                            value="name_za"
-                            {% if selected_sort == "name_za" %}
+                            value="name_desc"
+                            {% if selected_sort == "name_desc" %}
                                 selected
                             {% endif %}
                         >
@@ -487,26 +481,35 @@ Functional features:
                         </option>
 
                         <option
-                            value="quantity_low"
-                            {% if selected_sort == "quantity_low" %}
+                            value="quantity_asc"
+                            {% if selected_sort == "quantity_asc" %}
                                 selected
                             {% endif %}
                         >
-                            Quantity: Low to High
+                            Quantity Low–High
                         </option>
 
                         <option
-                            value="quantity_high"
-                            {% if selected_sort == "quantity_high" %}
+                            value="quantity_desc"
+                            {% if selected_sort == "quantity_desc" %}
                                 selected
                             {% endif %}
                         >
-                            Quantity: High to Low
+                            Quantity High–Low
                         </option>
 
                         <option
-                            value="code"
-                            {% if selected_sort == "code" %}
+                            value="value_desc"
+                            {% if selected_sort == "value_desc" %}
+                                selected
+                            {% endif %}
+                        >
+                            Highest Stock Value
+                        </option>
+
+                        <option
+                            value="code_asc"
+                            {% if selected_sort == "code_asc" %}
                                 selected
                             {% endif %}
                         >
@@ -533,10 +536,7 @@ Functional features:
                 </form>
 
 
-                <!-- ==================================================
-                     STOCK TABLE
-                =================================================== -->
-
+                <!-- Stock table -->
                 <div class="table-wrapper">
 
                     <table class="stock-table">
@@ -544,23 +544,16 @@ Functional features:
                         <thead>
 
                             <tr>
-
                                 <th>Code</th>
-
                                 <th>Item</th>
-
                                 <th>Category</th>
-
                                 <th>Quantity</th>
-
-                                <th>Minimum</th>
-
+                                <th>Reorder</th>
+                                <th>Cost</th>
+                                <th>Value</th>
                                 <th>Location</th>
-
                                 <th>Status</th>
-
                                 <th>Actions</th>
-
                             </tr>
 
                         </thead>
@@ -575,15 +568,19 @@ Functional features:
                                         {{ item.item_code }}
                                     </td>
 
-                                    <td>
+                                    <td class="item-description-cell">
 
                                         <strong>
                                             {{ item.item_name }}
                                         </strong>
 
-                                        <small>
-                                            {{ item.unit }}
-                                        </small>
+                                        {% if item.specification %}
+
+                                            <small>
+                                                {{ item.specification }}
+                                            </small>
+
+                                        {% endif %}
 
                                     </td>
 
@@ -593,10 +590,19 @@ Functional features:
 
                                     <td class="quantity-cell">
                                         {{ item.quantity }}
+                                        {{ item.unit }}
                                     </td>
 
                                     <td>
                                         {{ item.minimum_level }}
+                                    </td>
+
+                                    <td>
+                                        ${{ "%.2f"|format(item.unit_cost) }}
+                                    </td>
+
+                                    <td>
+                                        ${{ "%.2f"|format(item.stock_value) }}
                                     </td>
 
                                     <td>
@@ -605,25 +611,9 @@ Functional features:
 
                                     <td>
 
-                                        {% if item.quantity == 0 %}
-
-                                            <span class="status out">
-                                                Out of Stock
-                                            </span>
-
-                                        {% elif item.quantity <= item.minimum_level %}
-
-                                            <span class="status low">
-                                                Low Stock
-                                            </span>
-
-                                        {% else %}
-
-                                            <span class="status available">
-                                                Available
-                                            </span>
-
-                                        {% endif %}
+                                        <span class="status {{ item.status_key }}">
+                                            {{ item.status_text }}
+                                        </span>
 
                                     </td>
 
@@ -631,46 +621,63 @@ Functional features:
 
                                         <div class="table-actions">
 
-                                            <!-- Check stock in or out -->
                                             <button
                                                 type="button"
                                                 class="icon-button adjust-button"
-                                                title="Check Stock In or Out"
+                                                title="Stock In or Stock Out"
 
-                                                data-item-id="{{ item.id }}"
+                                                data-adjust-url="{{ url_for(
+                                                    'adjust_stock',
+                                                    item_id=item.id
+                                                ) }}"
+
                                                 data-item-name="{{ item.item_name }}"
                                                 data-current-quantity="{{ item.quantity }}"
+                                                data-unit="{{ item.unit }}"
                                             >
                                                 <i class="fa-solid fa-arrow-right-arrow-left"></i>
                                             </button>
 
 
-                                            <!-- Edit stock item -->
                                             <button
                                                 type="button"
                                                 class="icon-button edit-button"
                                                 title="Edit Item"
 
-                                                data-item-id="{{ item.id }}"
+                                                data-edit-url="{{ url_for(
+                                                    'edit_stock',
+                                                    item_id=item.id
+                                                ) }}"
+
                                                 data-item-code="{{ item.item_code }}"
                                                 data-item-name="{{ item.item_name }}"
                                                 data-category="{{ item.category }}"
+                                                data-specification="{{ item.specification }}"
                                                 data-quantity="{{ item.quantity }}"
                                                 data-minimum="{{ item.minimum_level }}"
                                                 data-unit="{{ item.unit }}"
                                                 data-location="{{ item.location }}"
+                                                data-unit-cost="{{ item.unit_cost }}"
                                                 data-notes="{{ item.notes }}"
                                             >
                                                 <i class="fa-solid fa-pen"></i>
                                             </button>
 
 
-                                            <!-- Delete stock item -->
                                             <form
-                                                action="{{ url_for('delete_stock', item_id=item.id) }}"
+                                                action="{{ url_for(
+                                                    'delete_stock',
+                                                    item_id=item.id
+                                                ) }}"
                                                 method="POST"
                                                 class="delete-form"
                                             >
+                                                <input
+                                                    type="hidden"
+                                                    name="csrf_token"
+                                                    value="{{ csrf_token() }}"
+                                                >
+
                                                 <button
                                                     type="submit"
                                                     class="icon-button delete-button"
@@ -692,17 +699,17 @@ Functional features:
                                 <tr>
 
                                     <td
-                                        colspan="8"
+                                        colspan="10"
                                         class="empty-table"
                                     >
                                         <i class="fa-solid fa-box-open"></i>
 
                                         <strong>
-                                            No stock items found
+                                            No stock records found
                                         </strong>
 
                                         <span>
-                                            Add a stock item or change the filters.
+                                            Add an item or change the current filters.
                                         </span>
                                     </td>
 
@@ -716,42 +723,95 @@ Functional features:
 
                 </div>
 
+
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+
+                    <nav
+                        class="pagination"
+                        aria-label="Stock table pages"
+                    >
+
+                        {% if page > 1 %}
+
+                            <a
+                                href="{{ url_for(
+                                    'stock_tracker',
+                                    page=page - 1,
+                                    search=search_text,
+                                    category=selected_category,
+                                    status=selected_status,
+                                    sort=selected_sort
+                                ) }}"
+                            >
+                                <i class="fa-solid fa-chevron-left"></i>
+                                Previous
+                            </a>
+
+                        {% endif %}
+
+
+                        <span>
+                            Page {{ page }} of {{ total_pages }}
+                        </span>
+
+
+                        {% if page < total_pages %}
+
+                            <a
+                                href="{{ url_for(
+                                    'stock_tracker',
+                                    page=page + 1,
+                                    search=search_text,
+                                    category=selected_category,
+                                    status=selected_status,
+                                    sort=selected_sort
+                                ) }}"
+                            >
+                                Next
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </a>
+
+                        {% endif %}
+
+                    </nav>
+
+                {% endif %}
+
             </section>
 
 
             <!-- ==================================================
-                 STOCK HISTORY
+                 STOCK ACTIVITY
             =================================================== -->
 
-            <section class="panel history-panel">
+            <section class="panel">
 
                 <div class="panel-heading">
 
                     <div>
-
                         <h2>Recent Stock Activity</h2>
 
                         <p>
-                            The latest stock additions, removals and edits.
+                            Latest stock additions, removals and quantity edits.
                         </p>
-
                     </div>
 
                 </div>
 
                 <div class="history-list">
 
-                    {% for history in stock_history %}
+                    {% for movement in movements %}
 
                         <article class="history-item">
 
                             <div class="history-icon">
 
-                                {% if history.movement_type == "Stock In" %}
+                                {% if movement.movement_type == "Stock In" %}
 
                                     <i class="fa-solid fa-arrow-down"></i>
 
-                                {% elif history.movement_type == "Stock Out" %}
+                                {% elif movement.movement_type == "Stock Out" %}
 
                                     <i class="fa-solid fa-arrow-up"></i>
 
@@ -766,21 +826,21 @@ Functional features:
                             <div class="history-details">
 
                                 <strong>
-                                    {{ history.item_name }}
+                                    {{ movement.item_name }}
                                 </strong>
 
                                 <span>
-                                    {{ history.movement_type }}:
-                                    {{ history.previous_quantity }}
+                                    {{ movement.movement_type }}:
+                                    {{ movement.previous_quantity }}
                                     →
-                                    {{ history.new_quantity }}
-                                    {{ history.unit }}
+                                    {{ movement.new_quantity }}
+                                    {{ movement.unit }}
                                 </span>
 
-                                {% if history.reason %}
+                                {% if movement.reason %}
 
                                     <small>
-                                        {{ history.reason }}
+                                        {{ movement.reason }}
                                     </small>
 
                                 {% endif %}
@@ -788,7 +848,7 @@ Functional features:
                             </div>
 
                             <time>
-                                {{ history.created_at }}
+                                {{ movement.created_at }}
                             </time>
 
                         </article>
@@ -807,32 +867,127 @@ Functional features:
 
 
             <!-- ==================================================
-                 AVAILABLE SUPPLIERS
-
-                 This area is deliberately blank because supplier
-                 information will be added using an API later.
+                 SUPPLIER API
             =================================================== -->
 
-            <section class="panel supplier-panel">
+            <section
+                class="panel supplier-panel"
+                id="supplier-panel"
+                data-api-url="{{ url_for('supplier_search') }}"
+            >
 
                 <div class="panel-heading">
 
                     <div>
 
-                        <h2>Available Suppliers</h2>
+                        <h2>Available Melbourne Suppliers</h2>
 
                         <p>
-                            Supplier API information will appear here.
+                            Search Greater Melbourne for businesses
+                            that may supply a selected stock item.
                         </p>
 
                     </div>
 
                 </div>
 
+
+                <div class="supplier-search-form">
+
+                    <label class="supplier-field">
+
+                        <span>Stock Item</span>
+
+                        <select id="supplier-item-select">
+
+                            <option value="">
+                                Select a stock item
+                            </option>
+
+                            {% for item in supplier_items %}
+
+                                <option value="{{ item.id }}">
+                                    {{ item.item_name }}
+                                    {% if item.specification %}
+                                        — {{ item.specification }}
+                                    {% endif %}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </label>
+
+
+                    <label class="supplier-field">
+
+                        <span>Melbourne Suburb or Postcode</span>
+
+                        <input
+                            type="text"
+                            id="supplier-suburb"
+                            maxlength="80"
+                            value="Melbourne VIC"
+                            placeholder="Example: Dandenong VIC"
+                        >
+
+                    </label>
+
+
+                    <button
+                        type="button"
+                        id="find-suppliers-button"
+                        class="primary-button supplier-search-button"
+                    >
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        Find Suppliers
+                    </button>
+
+                </div>
+
+
+                <p
+                    id="supplier-search-status"
+                    class="supplier-search-status"
+                    aria-live="polite"
+                ></p>
+
+
                 <div
                     id="supplier-api-results"
                     class="supplier-api-results"
-                ></div>
+                >
+
+                    <div class="supplier-empty-state">
+
+                        <i class="fa-solid fa-truck"></i>
+
+                        <strong>
+                            No supplier search completed
+                        </strong>
+
+                        <span>
+                            Select a stock item and enter a Melbourne suburb.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <p class="supplier-warning">
+                    Supplier results do not confirm that the selected
+                    item is currently in stock. Contact the supplier
+                    before ordering.
+                </p>
+
+                <!-- Google Maps attribution is required when displaying
+                     Places information without a Google map. -->
+                <div class="google-maps-attribution">
+                    Supplier information provided by
+                    <strong>Google Maps</strong>
+                </div>
 
             </section>
 
@@ -849,22 +1004,28 @@ Functional features:
         class="modal"
         id="add-stock-modal"
         aria-hidden="true"
+        hidden
     >
 
         <div class="modal-background"></div>
 
-        <section class="modal-content">
+        <section
+            class="modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-stock-title"
+        >
 
             <header class="modal-header">
 
                 <div>
-
-                    <h2>Add Stock Item</h2>
+                    <h2 id="add-stock-title">
+                        Add Carpentry Stock Item
+                    </h2>
 
                     <p>
-                        Enter the new stock item's information.
+                        Enter the material, hardware or tool information.
                     </p>
-
                 </div>
 
                 <button
@@ -882,12 +1043,18 @@ Functional features:
                 action="{{ url_for('add_stock') }}"
                 method="POST"
                 class="stock-form"
+                id="add-stock-form"
             >
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
 
                 <div class="form-grid">
 
                     <label>
-
                         <span>Item Code *</span>
 
                         <input
@@ -896,86 +1063,146 @@ Functional features:
                             required
                             minlength="2"
                             maxlength="20"
-                            placeholder="Example: STK-001"
+                            pattern="[A-Za-z0-9_-]{2,20}"
+                            placeholder="Example: TIM-001"
                         >
-
                     </label>
 
 
                     <label>
-
                         <span>Item Name *</span>
 
                         <input
                             type="text"
                             name="item_name"
+                            list="carpentry-item-examples"
                             required
                             minlength="2"
                             maxlength="100"
-                            placeholder="Example: Pine Boards"
+                            placeholder="Example: Radiata Pine"
                         >
 
+                        <datalist id="carpentry-item-examples">
+                            <option value="MGP10 Radiata Pine">
+                            <option value="Tasmanian Oak DAR">
+                            <option value="Victorian Ash DAR">
+                            <option value="Merbau Decking">
+                            <option value="Structural Plywood">
+                            <option value="Marine Plywood">
+                            <option value="MDF Board">
+                            <option value="Galvanised Wood Screws">
+                            <option value="Countersunk Wood Screws">
+                            <option value="Brad Nails">
+                            <option value="PVA Wood Adhesive">
+                            <option value="Construction Adhesive">
+                            <option value="Clear Polyurethane Finish">
+                            <option value="120 Grit Sandpaper">
+                            <option value="Circular Saw Blade">
+                        </datalist>
                     </label>
 
 
                     <label>
-
                         <span>Category *</span>
 
-                        <input
-                            type="text"
+                        <select
                             name="category"
                             required
-                            minlength="2"
-                            maxlength="50"
-                            placeholder="Example: Timber"
                         >
+                            <option value="" selected disabled>
+                                Select a category
+                            </option>
 
+                            <option value="Structural Timber">
+                                Structural Timber
+                            </option>
+
+                            <option value="Dressed Timber">
+                                Dressed Timber
+                            </option>
+
+                            <option value="Decking Timber">
+                                Decking Timber
+                            </option>
+
+                            <option value="Sheet Materials">
+                                Sheet Materials
+                            </option>
+
+                            <option value="Hardware and Fixings">
+                                Hardware and Fixings
+                            </option>
+
+                            <option value="Adhesives">
+                                Adhesives
+                            </option>
+
+                            <option value="Finishes and Coatings">
+                                Finishes and Coatings
+                            </option>
+
+                            <option value="Abrasives">
+                                Abrasives
+                            </option>
+
+                            <option value="Hand Tools">
+                                Hand Tools
+                            </option>
+
+                            <option value="Power Tools">
+                                Power Tools
+                            </option>
+
+                            <option value="Tool Accessories">
+                                Tool Accessories
+                            </option>
+
+                            <option value="Safety Equipment">
+                                Safety Equipment
+                            </option>
+                        </select>
                     </label>
 
 
                     <label>
-
-                        <span>Unit *</span>
+                        <span>Measurement Unit *</span>
 
                         <select
                             name="unit"
                             required
                         >
-                            <option value="units">
-                                Units
+                            <option value="" selected disabled>
+                                Select a unit
                             </option>
 
-                            <option value="pieces">
-                                Pieces
-                            </option>
-
-                            <option value="boards">
-                                Boards
-                            </option>
-
-                            <option value="metres">
-                                Metres
-                            </option>
-
-                            <option value="sheets">
-                                Sheets
-                            </option>
-
-                            <option value="boxes">
-                                Boxes
-                            </option>
-
-                            <option value="litres">
-                                Litres
-                            </option>
+                            <option value="lengths">Lengths</option>
+                            <option value="boards">Boards</option>
+                            <option value="sheets">Sheets</option>
+                            <option value="pieces">Pieces</option>
+                            <option value="packs">Packs</option>
+                            <option value="boxes">Boxes</option>
+                            <option value="units">Individual Units</option>
+                            <option value="litres">Litres</option>
+                            <option value="tubes">Tubes</option>
+                            <option value="rolls">Rolls</option>
+                            <option value="kilograms">Kilograms</option>
                         </select>
+                    </label>
 
+
+                    <label class="full-width">
+                        <span>Size, Grade or Specification</span>
+
+                        <input
+                            type="text"
+                            name="specification"
+                            maxlength="200"
+                            placeholder="Example: MGP10, 90 × 35 mm, 2.4 m length"
+                        >
                     </label>
 
 
                     <label>
-
                         <span>Starting Quantity *</span>
 
                         <input
@@ -984,15 +1211,14 @@ Functional features:
                             required
                             min="0"
                             max="1000000"
+                            step="1"
                             value="0"
                         >
-
                     </label>
 
 
                     <label>
-
-                        <span>Minimum Level *</span>
+                        <span>Reorder Level *</span>
 
                         <input
                             type="number"
@@ -1000,37 +1226,48 @@ Functional features:
                             required
                             min="0"
                             max="1000000"
+                            step="1"
                             value="5"
                         >
-
                     </label>
 
 
-                    <label class="full-width">
+                    <label>
+                        <span>Unit Cost in AUD</span>
 
+                        <input
+                            type="number"
+                            name="unit_cost"
+                            min="0"
+                            max="1000000"
+                            step="0.01"
+                            value="0.00"
+                            placeholder="Example: 18.50"
+                        >
+                    </label>
+
+
+                    <label>
                         <span>Storage Location</span>
 
                         <input
                             type="text"
                             name="location"
                             maxlength="100"
-                            placeholder="Example: Warehouse Shelf A2"
+                            placeholder="Example: Timber Rack A, Bay 2"
                         >
-
                     </label>
 
 
                     <label class="full-width">
-
                         <span>Notes</span>
 
                         <textarea
                             name="notes"
                             maxlength="500"
                             rows="4"
-                            placeholder="Optional information about this item"
+                            placeholder="Species, grade, finish, condition or ordering information"
                         ></textarea>
-
                     </label>
 
                 </div>
@@ -1050,7 +1287,7 @@ Functional features:
                         class="primary-button"
                     >
                         <i class="fa-solid fa-plus"></i>
-                        Add Stock
+                        Add Stock Item
                     </button>
 
                 </footer>
@@ -1070,22 +1307,28 @@ Functional features:
         class="modal"
         id="edit-stock-modal"
         aria-hidden="true"
+        hidden
     >
 
         <div class="modal-background"></div>
 
-        <section class="modal-content">
+        <section
+            class="modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-stock-title"
+        >
 
             <header class="modal-header">
 
                 <div>
-
-                    <h2>Edit Stock Item</h2>
+                    <h2 id="edit-stock-title">
+                        Edit Stock Item
+                    </h2>
 
                     <p>
                         Update the selected stock record.
                     </p>
-
                 </div>
 
                 <button
@@ -1105,10 +1348,15 @@ Functional features:
                 id="edit-stock-form"
             >
 
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
+
                 <div class="form-grid">
 
                     <label>
-
                         <span>Item Code *</span>
 
                         <input
@@ -1116,14 +1364,14 @@ Functional features:
                             name="item_code"
                             id="edit-item-code"
                             required
+                            minlength="2"
                             maxlength="20"
+                            pattern="[A-Za-z0-9_-]{2,20}"
                         >
-
                     </label>
 
 
                     <label>
-
                         <span>Item Name *</span>
 
                         <input
@@ -1131,50 +1379,74 @@ Functional features:
                             name="item_name"
                             id="edit-item-name"
                             required
+                            minlength="2"
                             maxlength="100"
                         >
-
                     </label>
 
 
                     <label>
-
                         <span>Category *</span>
 
-                        <input
-                            type="text"
+                        <select
                             name="category"
                             id="edit-category"
                             required
-                            maxlength="50"
                         >
-
+                            <option value="">Select a category</option>
+                            <option value="Structural Timber">Structural Timber</option>
+                            <option value="Dressed Timber">Dressed Timber</option>
+                            <option value="Decking Timber">Decking Timber</option>
+                            <option value="Sheet Materials">Sheet Materials</option>
+                            <option value="Hardware and Fixings">Hardware and Fixings</option>
+                            <option value="Adhesives">Adhesives</option>
+                            <option value="Finishes and Coatings">Finishes and Coatings</option>
+                            <option value="Abrasives">Abrasives</option>
+                            <option value="Hand Tools">Hand Tools</option>
+                            <option value="Power Tools">Power Tools</option>
+                            <option value="Tool Accessories">Tool Accessories</option>
+                            <option value="Safety Equipment">Safety Equipment</option>
+                        </select>
                     </label>
 
 
                     <label>
-
-                        <span>Unit *</span>
+                        <span>Measurement Unit *</span>
 
                         <select
                             name="unit"
                             id="edit-unit"
                             required
                         >
-                            <option value="units">Units</option>
-                            <option value="pieces">Pieces</option>
+                            <option value="">Select a unit</option>
+                            <option value="lengths">Lengths</option>
                             <option value="boards">Boards</option>
-                            <option value="metres">Metres</option>
                             <option value="sheets">Sheets</option>
+                            <option value="pieces">Pieces</option>
+                            <option value="packs">Packs</option>
                             <option value="boxes">Boxes</option>
+                            <option value="units">Individual Units</option>
                             <option value="litres">Litres</option>
+                            <option value="tubes">Tubes</option>
+                            <option value="rolls">Rolls</option>
+                            <option value="kilograms">Kilograms</option>
                         </select>
+                    </label>
 
+
+                    <label class="full-width">
+                        <span>Size, Grade or Specification</span>
+
+                        <input
+                            type="text"
+                            name="specification"
+                            id="edit-specification"
+                            maxlength="200"
+                        >
                     </label>
 
 
                     <label>
-
                         <span>Quantity *</span>
 
                         <input
@@ -1184,14 +1456,13 @@ Functional features:
                             required
                             min="0"
                             max="1000000"
+                            step="1"
                         >
-
                     </label>
 
 
                     <label>
-
-                        <span>Minimum Level *</span>
+                        <span>Reorder Level *</span>
 
                         <input
                             type="number"
@@ -1200,13 +1471,26 @@ Functional features:
                             required
                             min="0"
                             max="1000000"
+                            step="1"
                         >
-
                     </label>
 
 
-                    <label class="full-width">
+                    <label>
+                        <span>Unit Cost in AUD</span>
 
+                        <input
+                            type="number"
+                            name="unit_cost"
+                            id="edit-unit-cost"
+                            min="0"
+                            max="1000000"
+                            step="0.01"
+                        >
+                    </label>
+
+
+                    <label>
                         <span>Storage Location</span>
 
                         <input
@@ -1215,12 +1499,10 @@ Functional features:
                             id="edit-location"
                             maxlength="100"
                         >
-
                     </label>
 
 
                     <label class="full-width">
-
                         <span>Notes</span>
 
                         <textarea
@@ -1229,7 +1511,6 @@ Functional features:
                             maxlength="500"
                             rows="4"
                         ></textarea>
-
                     </label>
 
                 </div>
@@ -1269,22 +1550,28 @@ Functional features:
         class="modal"
         id="adjust-stock-modal"
         aria-hidden="true"
+        hidden
     >
 
         <div class="modal-background"></div>
 
-        <section class="modal-content small-modal">
+        <section
+            class="modal-content small-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="adjust-stock-title"
+        >
 
             <header class="modal-header">
 
                 <div>
-
-                    <h2>Adjust Stock</h2>
+                    <h2 id="adjust-stock-title">
+                        Stock In or Stock Out
+                    </h2>
 
                     <p id="adjust-item-description">
-                        Check stock in or out.
+                        Update the selected quantity.
                     </p>
-
                 </div>
 
                 <button
@@ -1304,8 +1591,13 @@ Functional features:
                 id="adjust-stock-form"
             >
 
-                <label>
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
 
+                <label>
                     <span>Adjustment Type *</span>
 
                     <select
@@ -1320,12 +1612,10 @@ Functional features:
                             Stock Out
                         </option>
                     </select>
-
                 </label>
 
 
                 <label>
-
                     <span>Quantity *</span>
 
                     <input
@@ -1334,23 +1624,21 @@ Functional features:
                         required
                         min="1"
                         max="1000000"
+                        step="1"
                         value="1"
                     >
-
                 </label>
 
 
                 <label>
-
                     <span>Reason</span>
 
                     <textarea
                         name="reason"
-                        rows="3"
                         maxlength="300"
+                        rows="3"
                         placeholder="Example: New delivery or used for Job 104"
                     ></textarea>
-
                 </label>
 
 
@@ -1379,7 +1667,6 @@ Functional features:
     </div>
 
 
-    <!-- JavaScript -->
     <script
         src="{{ url_for('static', filename='stock_tracker.js') }}"
     ></script>
