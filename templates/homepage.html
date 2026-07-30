@@ -7,36 +7,25 @@ Project: TimberOps
 Purpose:
 Displays the main TimberOps dashboard after a successful
 administrator login.
-
-Features:
-- Company logo
-- Scrollable sidebar navigation
-- Cardboard box inventory icon
-- Top navigation bar
-- Welcome card
-- Responsive layout
 ==========================================================
 -->
 
 <html lang="en">
 
 <head>
-    <!-- Defines the character encoding used by the webpage -->
     <meta charset="UTF-8">
 
-    <!-- Allows the layout to adjust to different screen sizes -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Text shown in the browser tab -->
     <title>TimberOps | Dashboard</title>
 
-    <!-- Links the homepage stylesheet stored in the static folder -->
+    <!-- Homepage stylesheet -->
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='homepage.css') }}"
     >
 
-    <!-- Imports Font Awesome icons used in the navigation -->
+    <!-- Font Awesome icons -->
     <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -51,19 +40,21 @@ Features:
 
     <aside class="sidebar">
 
-        <!-- Company logo displayed at the top-left -->
+        <!-- Company logo -->
         <div class="logo-box">
+
             <img
                 src="{{ url_for('static', filename='images/transparent-logo.png') }}"
                 alt="TimberOps Logo"
                 class="sidebar-logo"
             >
+
         </div>
 
         <!-- Scrollable navigation menu -->
         <nav class="sidebar-menu" aria-label="Dashboard navigation">
 
-            <!-- Home navigation button -->
+            <!-- Homepage -->
             <a
                 href="{{ url_for('home') }}"
                 class="sidebar-link active"
@@ -73,7 +64,7 @@ Features:
                 <i class="fa-solid fa-house"></i>
             </a>
 
-            <!-- Inventory navigation button using a cardboard box icon -->
+            <!-- Stock Tracker -->
             <a
                 href="{{ url_for('stock_tracker') }}"
                 class="sidebar-link"
@@ -83,7 +74,7 @@ Features:
                 <i class="fa-solid fa-box"></i>
             </a>
 
-            <!-- Calendar navigation button -->
+            <!-- Calendar -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -93,7 +84,7 @@ Features:
                 <i class="fa-solid fa-calendar-days"></i>
             </a>
 
-            <!-- Messages navigation button -->
+            <!-- Messages -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -103,7 +94,7 @@ Features:
                 <i class="fa-solid fa-comment"></i>
             </a>
 
-            <!-- Documents navigation button -->
+            <!-- Documents -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -113,7 +104,7 @@ Features:
                 <i class="fa-solid fa-file-lines"></i>
             </a>
 
-            <!-- Information navigation button -->
+            <!-- Information -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -123,7 +114,7 @@ Features:
                 <i class="fa-solid fa-circle-info"></i>
             </a>
 
-            <!-- Favourites navigation button -->
+            <!-- Favourites -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -133,7 +124,7 @@ Features:
                 <i class="fa-solid fa-star"></i>
             </a>
 
-            <!-- Reports navigation button -->
+            <!-- Reports -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -143,7 +134,7 @@ Features:
                 <i class="fa-solid fa-chart-column"></i>
             </a>
 
-            <!-- Settings navigation button -->
+            <!-- Settings -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -159,7 +150,7 @@ Features:
 
 
     <!-- ==================================================
-         MAIN DASHBOARD AREA
+         MAIN DASHBOARD
     =================================================== -->
 
     <div class="main-container">
@@ -167,7 +158,7 @@ Features:
         <!-- Top navigation bar -->
         <header class="top-bar">
 
-            <!-- Menu button reserved for future sidebar functionality -->
+            <!-- Menu button -->
             <button
                 type="button"
                 class="menu-button"
@@ -177,45 +168,97 @@ Features:
                 <i class="fa-solid fa-bars"></i>
             </button>
 
-            <!-- Company name displayed in the centre -->
+            <!-- Company name -->
             <div class="brand-name">
                 TimberOps
             </div>
 
-            <!-- Administrator profile icon -->
-            <div
-                class="profile-icon"
-                aria-label="Administrator profile"
-                title="Administrator profile"
-            >
-                <i class="fa-solid fa-user"></i>
+            <!-- ==================================================
+                 PROFILE MENU
+            =================================================== -->
+
+            <div class="profile-menu">
+
+                <!-- Profile icon button -->
+                <button
+                    type="button"
+                    id="profile-button"
+                    class="profile-icon"
+                    aria-label="Open profile menu"
+                    aria-expanded="false"
+                    title="Administrator profile"
+                >
+                    <i class="fa-solid fa-user"></i>
+                </button>
+
+                <!-- Dropdown menu -->
+                <div
+                    id="profile-dropdown"
+                    class="profile-dropdown"
+                >
+
+                    <!-- Account information -->
+                    <div class="profile-dropdown-heading">
+
+                        <div class="dropdown-profile-icon">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
+
+                        <div class="profile-details">
+
+                            <strong>Administrator</strong>
+
+                            <span>TimberOps account</span>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Logout form -->
+                    <form
+                        action="{{ url_for('logout') }}"
+                        method="POST"
+                        class="logout-form"
+                    >
+
+                        <button
+                            type="submit"
+                            class="logout-button"
+                        >
+                            <i class="fa-solid fa-right-from-bracket"></i>
+
+                            <span>Log Out</span>
+                        </button>
+
+                    </form>
+
+                </div>
+
             </div>
 
         </header>
 
 
         <!-- ==================================================
-             MAIN PAGE CONTENT
+             PAGE CONTENT
         =================================================== -->
 
         <main class="content">
 
-            <!-- Current page heading -->
             <h1 class="page-title">Home</h1>
 
-            <!-- Main welcome card -->
             <section class="welcome-card">
 
-                <!-- Welcome text -->
                 <div class="welcome-text">
+
                     <h2>Welcome to TimberOps</h2>
 
                     <p>
                         Manage your carpentry operations quickly and efficiently.
                     </p>
+
                 </div>
 
-                <!-- Carpentry image -->
                 <img
                     src="{{ url_for('static', filename='images/carpentry_img.jpg') }}"
                     alt="Carpentry tools and timber"
@@ -227,6 +270,78 @@ Features:
         </main>
 
     </div>
+
+
+    <!-- ==================================================
+         PROFILE MENU JAVASCRIPT
+    =================================================== -->
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            // Finds the profile menu elements.
+            const profileMenu = document.querySelector(".profile-menu");
+            const profileButton = document.getElementById("profile-button");
+            const profileDropdown =
+                document.getElementById("profile-dropdown");
+
+            // Stops the script if the required elements are missing.
+            if (!profileMenu || !profileButton || !profileDropdown) {
+                console.error("Profile menu elements could not be found.");
+                return;
+            }
+
+            // Opens or closes the dropdown.
+            profileButton.addEventListener("click", function (event) {
+                event.stopPropagation();
+
+                const isOpen =
+                    profileDropdown.classList.toggle("profile-dropdown-open");
+
+                profileButton.setAttribute(
+                    "aria-expanded",
+                    isOpen.toString()
+                );
+            });
+
+            // Prevents clicks inside the dropdown from closing it.
+            profileDropdown.addEventListener("click", function (event) {
+                event.stopPropagation();
+            });
+
+            // Closes the dropdown when clicking elsewhere.
+            document.addEventListener("click", function () {
+                profileDropdown.classList.remove(
+                    "profile-dropdown-open"
+                );
+
+                profileButton.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+            });
+
+            // Closes the dropdown when Escape is pressed.
+            document.addEventListener("keydown", function (event) {
+
+                if (event.key === "Escape") {
+
+                    profileDropdown.classList.remove(
+                        "profile-dropdown-open"
+                    );
+
+                    profileButton.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+
+                    profileButton.focus();
+                }
+
+            });
+
+        });
+    </script>
 
 </body>
 

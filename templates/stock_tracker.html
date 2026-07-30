@@ -5,42 +5,42 @@ File: stock_tracker.html
 Project: TimberOps
 
 Purpose:
-Displays the TimberOps stock tracking interface.
+Provides a complete stock-management interface.
 
-Current features:
-- Stock overview cards
-- Search and filter controls
-- Stock table
-- Available suppliers section
-- Navigation back to the homepage
-
-Future features:
-- Database connection
-- Add, edit and delete stock records
-- Supplier API integration
-- Low-stock notifications
+Functional features:
+- Add stock
+- Edit stock
+- Delete stock
+- Check stock in
+- Check stock out
+- Search
+- Category filtering
+- Status filtering
+- Sorting
+- Stock history
+- Blank supplier API section
 ==========================================================
 -->
 
 <html lang="en">
 
 <head>
-    <!-- Defines the webpage character encoding -->
     <meta charset="UTF-8">
 
-    <!-- Makes the page responsive on different devices -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <!-- Browser tab title -->
     <title>Stock Tracker | TimberOps</title>
 
-    <!-- Links the Stock Tracker stylesheet -->
+    <!-- Stock Tracker stylesheet -->
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='stock_tracker.css') }}"
     >
 
-    <!-- Imports Font Awesome icons -->
+    <!-- Font Awesome icons -->
     <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -50,24 +50,26 @@ Future features:
 <body>
 
     <!-- ==================================================
-         SIDEBAR NAVIGATION
+         SIDEBAR
     =================================================== -->
 
     <aside class="sidebar">
 
-        <!-- TimberOps logo -->
         <div class="logo-box">
+
             <img
                 src="{{ url_for('static', filename='images/transparent-logo.png') }}"
                 alt="TimberOps Logo"
                 class="sidebar-logo"
             >
+
         </div>
 
-        <!-- Scrollable navigation menu -->
-        <nav class="sidebar-menu" aria-label="Dashboard navigation">
+        <nav
+            class="sidebar-menu"
+            aria-label="Dashboard navigation"
+        >
 
-            <!-- Home -->
             <a
                 href="{{ url_for('home') }}"
                 class="sidebar-link"
@@ -77,7 +79,6 @@ Future features:
                 <i class="fa-solid fa-house"></i>
             </a>
 
-            <!-- Stock Tracker -->
             <a
                 href="{{ url_for('stock_tracker') }}"
                 class="sidebar-link active"
@@ -87,7 +88,6 @@ Future features:
                 <i class="fa-solid fa-box"></i>
             </a>
 
-            <!-- Calendar placeholder -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -97,7 +97,6 @@ Future features:
                 <i class="fa-solid fa-calendar-days"></i>
             </a>
 
-            <!-- Messages placeholder -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -107,7 +106,6 @@ Future features:
                 <i class="fa-solid fa-comment"></i>
             </a>
 
-            <!-- Documents placeholder -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -117,7 +115,6 @@ Future features:
                 <i class="fa-solid fa-file-lines"></i>
             </a>
 
-            <!-- Information placeholder -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -127,7 +124,6 @@ Future features:
                 <i class="fa-solid fa-circle-info"></i>
             </a>
 
-            <!-- Favourites placeholder -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -137,7 +133,6 @@ Future features:
                 <i class="fa-solid fa-star"></i>
             </a>
 
-            <!-- Reports placeholder -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -147,7 +142,6 @@ Future features:
                 <i class="fa-solid fa-chart-column"></i>
             </a>
 
-            <!-- Settings placeholder -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -163,37 +157,38 @@ Future features:
 
 
     <!-- ==================================================
-         MAIN STOCK TRACKER AREA
+         MAIN CONTAINER
     =================================================== -->
 
     <div class="main-container">
 
-        <!-- Top navigation bar -->
         <header class="top-bar">
 
-            <!-- Menu button reserved for future functionality -->
             <button
                 type="button"
                 class="menu-button"
-                aria-label="Open navigation menu"
-                title="Menu"
+                aria-label="Navigation menu"
             >
                 <i class="fa-solid fa-bars"></i>
             </button>
 
-            <!-- Company name -->
             <div class="brand-name">
                 TimberOps
             </div>
 
-            <!-- Administrator profile icon -->
-            <div
-                class="profile-icon"
-                aria-label="Administrator profile"
-                title="Administrator profile"
+            <form
+                action="{{ url_for('logout') }}"
+                method="POST"
             >
-                <i class="fa-solid fa-user"></i>
-            </div>
+                <button
+                    type="submit"
+                    class="top-logout-button"
+                    title="Log Out"
+                    aria-label="Log Out"
+                >
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </form>
 
         </header>
 
@@ -204,37 +199,69 @@ Future features:
 
         <main class="content">
 
-            <!-- Page heading and Add Stock button -->
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+
+                {% if messages %}
+
+                    <section class="flash-container">
+
+                        {% for category, message in messages %}
+
+                            <div class="flash-message {{ category }}">
+
+                                <span>{{ message }}</span>
+
+                                <button
+                                    type="button"
+                                    class="close-flash"
+                                    aria-label="Close message"
+                                >
+                                    &times;
+                                </button>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </section>
+
+                {% endif %}
+
+            {% endwith %}
+
+
+            <!-- Page heading -->
             <section class="page-heading">
 
                 <div>
+
                     <h1>Stock Tracker</h1>
 
                     <p>
-                        View and manage TimberOps stock levels.
+                        Add, remove, search and manage TimberOps stock.
                     </p>
+
                 </div>
 
-                <!-- Future button for adding database records -->
                 <button
                     type="button"
-                    class="add-stock-button"
-                    title="Add a new stock item"
+                    class="primary-button"
+                    id="open-add-modal"
                 >
                     <i class="fa-solid fa-plus"></i>
-                    Add Stock
+                    Add Stock Item
                 </button>
 
             </section>
 
 
             <!-- ==================================================
-                 STOCK SUMMARY CARDS
+                 SUMMARY CARDS
             =================================================== -->
 
             <section class="summary-grid">
 
-                <!-- Total stock items -->
                 <article class="summary-card">
 
                     <div class="summary-icon">
@@ -242,50 +269,70 @@ Future features:
                     </div>
 
                     <div>
-                        <p>Total Stock Items</p>
-                        <h2>24</h2>
+
+                        <span>Total Items</span>
+
+                        <strong>
+                            {{ summary.total_items }}
+                        </strong>
+
                     </div>
 
                 </article>
 
-                <!-- Low-stock items -->
-                <article class="summary-card warning-card">
+
+                <article class="summary-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+
+                    <div>
+
+                        <span>Total Quantity</span>
+
+                        <strong>
+                            {{ summary.total_quantity }}
+                        </strong>
+
+                    </div>
+
+                </article>
+
+
+                <article class="summary-card warning">
 
                     <div class="summary-icon">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                     </div>
 
                     <div>
-                        <p>Low Stock Items</p>
-                        <h2>4</h2>
+
+                        <span>Low Stock</span>
+
+                        <strong>
+                            {{ summary.low_stock_items }}
+                        </strong>
+
                     </div>
 
                 </article>
 
-                <!-- Out-of-stock items -->
-                <article class="summary-card danger-card">
+
+                <article class="summary-card danger">
 
                     <div class="summary-icon">
                         <i class="fa-solid fa-circle-xmark"></i>
                     </div>
 
                     <div>
-                        <p>Out of Stock</p>
-                        <h2>2</h2>
-                    </div>
 
-                </article>
+                        <span>Out of Stock</span>
 
-                <!-- Supplier count -->
-                <article class="summary-card">
+                        <strong>
+                            {{ summary.out_of_stock_items }}
+                        </strong>
 
-                    <div class="summary-icon">
-                        <i class="fa-solid fa-truck"></i>
-                    </div>
-
-                    <div>
-                        <p>Available Suppliers</p>
-                        <h2>6</h2>
                     </div>
 
                 </article>
@@ -294,224 +341,374 @@ Future features:
 
 
             <!-- ==================================================
-                 STOCK CONTROLS
+                 FILTERS
             =================================================== -->
 
-            <section class="stock-panel">
+            <section class="panel">
 
                 <div class="panel-heading">
+
                     <div>
+
                         <h2>Current Stock</h2>
-                        <p>Search and review current inventory records.</p>
+
+                        <p>
+                            Search, filter and update inventory records.
+                        </p>
+
                     </div>
+
                 </div>
 
-                <!-- Search and filter controls -->
-                <div class="stock-controls">
+                <form
+                    action="{{ url_for('stock_tracker') }}"
+                    method="GET"
+                    class="filter-form"
+                    id="stock-filter-form"
+                >
 
-                    <!-- Search field -->
-                    <div class="search-container">
+                    <div class="search-field">
+
                         <i class="fa-solid fa-magnifying-glass"></i>
 
                         <input
                             type="search"
+                            name="search"
                             id="stock-search"
-                            name="stock-search"
-                            placeholder="Search stock..."
-                            aria-label="Search stock"
+                            value="{{ search_text }}"
+                            placeholder="Search code, name, category or location"
                             maxlength="100"
                         >
+
                     </div>
 
-                    <!-- Category filter -->
-                    <label class="filter-group" for="category-filter">
-                        <span>Category</span>
 
-                        <select
-                            id="category-filter"
-                            name="category-filter"
-                            aria-label="Filter stock by category"
+                    <select
+                        name="category"
+                        id="category-filter"
+                        aria-label="Category filter"
+                    >
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% for category in categories %}
+
+                            <option
+                                value="{{ category.category }}"
+                                {% if selected_category == category.category %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ category.category }}
+                            </option>
+
+                        {% endfor %}
+                    </select>
+
+
+                    <select
+                        name="status"
+                        id="status-filter"
+                        aria-label="Status filter"
+                    >
+                        <option value="">
+                            All Statuses
+                        </option>
+
+                        <option
+                            value="available"
+                            {% if selected_status == "available" %}
+                                selected
+                            {% endif %}
                         >
-                            <option value="all">All Categories</option>
-                            <option value="timber">Timber</option>
-                            <option value="hardware">Hardware</option>
-                            <option value="tools">Tools</option>
-                            <option value="finishes">Finishes</option>
-                        </select>
-                    </label>
+                            Available
+                        </option>
 
-                    <!-- Stock status filter -->
-                    <label class="filter-group" for="status-filter">
-                        <span>Status</span>
-
-                        <select
-                            id="status-filter"
-                            name="status-filter"
-                            aria-label="Filter stock by status"
+                        <option
+                            value="low"
+                            {% if selected_status == "low" %}
+                                selected
+                            {% endif %}
                         >
-                            <option value="all">All Statuses</option>
-                            <option value="available">Available</option>
-                            <option value="low">Low Stock</option>
-                            <option value="out">Out of Stock</option>
-                        </select>
-                    </label>
+                            Low Stock
+                        </option>
 
-                </div>
+                        <option
+                            value="out"
+                            {% if selected_status == "out" %}
+                                selected
+                            {% endif %}
+                        >
+                            Out of Stock
+                        </option>
+                    </select>
+
+
+                    <select
+                        name="sort"
+                        id="sort-filter"
+                        aria-label="Sort stock"
+                    >
+                        <option
+                            value="newest"
+                            {% if selected_sort == "newest" %}
+                                selected
+                            {% endif %}
+                        >
+                            Recently Updated
+                        </option>
+
+                        <option
+                            value="oldest"
+                            {% if selected_sort == "oldest" %}
+                                selected
+                            {% endif %}
+                        >
+                            Oldest Updated
+                        </option>
+
+                        <option
+                            value="name_az"
+                            {% if selected_sort == "name_az" %}
+                                selected
+                            {% endif %}
+                        >
+                            Name A–Z
+                        </option>
+
+                        <option
+                            value="name_za"
+                            {% if selected_sort == "name_za" %}
+                                selected
+                            {% endif %}
+                        >
+                            Name Z–A
+                        </option>
+
+                        <option
+                            value="quantity_low"
+                            {% if selected_sort == "quantity_low" %}
+                                selected
+                            {% endif %}
+                        >
+                            Quantity: Low to High
+                        </option>
+
+                        <option
+                            value="quantity_high"
+                            {% if selected_sort == "quantity_high" %}
+                                selected
+                            {% endif %}
+                        >
+                            Quantity: High to Low
+                        </option>
+
+                        <option
+                            value="code"
+                            {% if selected_sort == "code" %}
+                                selected
+                            {% endif %}
+                        >
+                            Item Code
+                        </option>
+                    </select>
+
+
+                    <button
+                        type="submit"
+                        class="filter-button"
+                    >
+                        Apply
+                    </button>
+
+
+                    <a
+                        href="{{ url_for('stock_tracker') }}"
+                        class="clear-button"
+                    >
+                        Clear
+                    </a>
+
+                </form>
 
 
                 <!-- ==================================================
                      STOCK TABLE
                 =================================================== -->
 
-                <div class="table-container">
+                <div class="table-wrapper">
 
                     <table class="stock-table">
 
                         <thead>
+
                             <tr>
-                                <th scope="col">Item ID</th>
-                                <th scope="col">Stock Item</th>
-                                <th scope="col">Category</th>
-                                <th scope="col">Quantity</th>
-                                <th scope="col">Minimum Level</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Actions</th>
+
+                                <th>Code</th>
+
+                                <th>Item</th>
+
+                                <th>Category</th>
+
+                                <th>Quantity</th>
+
+                                <th>Minimum</th>
+
+                                <th>Location</th>
+
+                                <th>Status</th>
+
+                                <th>Actions</th>
+
                             </tr>
+
                         </thead>
 
                         <tbody>
 
-                            <!-- Temporary stock data.
-                                 These rows will later be generated by Flask
-                                 using records stored in a database. -->
+                            {% for item in stock_items %}
 
-                            <tr>
-                                <td>STK-001</td>
-                                <td>Pine Timber Boards</td>
-                                <td>Timber</td>
-                                <td>48</td>
-                                <td>15</td>
-                                <td>
-                                    <span class="status available">
-                                        Available
-                                    </span>
-                                </td>
-                                <td class="action-buttons">
-                                    <button
-                                        type="button"
-                                        class="edit-button"
-                                        aria-label="Edit Pine Timber Boards"
-                                        title="Edit item"
-                                    >
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
+                                <tr>
 
-                                    <button
-                                        type="button"
-                                        class="delete-button"
-                                        aria-label="Delete Pine Timber Boards"
-                                        title="Delete item"
-                                    >
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
+                                    <td class="item-code">
+                                        {{ item.item_code }}
+                                    </td>
 
-                            <tr>
-                                <td>STK-002</td>
-                                <td>Oak Timber Boards</td>
-                                <td>Timber</td>
-                                <td>8</td>
-                                <td>12</td>
-                                <td>
-                                    <span class="status low">
-                                        Low Stock
-                                    </span>
-                                </td>
-                                <td class="action-buttons">
-                                    <button
-                                        type="button"
-                                        class="edit-button"
-                                        aria-label="Edit Oak Timber Boards"
-                                        title="Edit item"
-                                    >
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
+                                    <td>
 
-                                    <button
-                                        type="button"
-                                        class="delete-button"
-                                        aria-label="Delete Oak Timber Boards"
-                                        title="Delete item"
-                                    >
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
+                                        <strong>
+                                            {{ item.item_name }}
+                                        </strong>
 
-                            <tr>
-                                <td>STK-003</td>
-                                <td>Wood Screws</td>
-                                <td>Hardware</td>
-                                <td>125</td>
-                                <td>40</td>
-                                <td>
-                                    <span class="status available">
-                                        Available
-                                    </span>
-                                </td>
-                                <td class="action-buttons">
-                                    <button
-                                        type="button"
-                                        class="edit-button"
-                                        aria-label="Edit Wood Screws"
-                                        title="Edit item"
-                                    >
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
+                                        <small>
+                                            {{ item.unit }}
+                                        </small>
 
-                                    <button
-                                        type="button"
-                                        class="delete-button"
-                                        aria-label="Delete Wood Screws"
-                                        title="Delete item"
-                                    >
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
+                                    </td>
 
-                            <tr>
-                                <td>STK-004</td>
-                                <td>Wood Adhesive</td>
-                                <td>Finishes</td>
-                                <td>0</td>
-                                <td>10</td>
-                                <td>
-                                    <span class="status out">
-                                        Out of Stock
-                                    </span>
-                                </td>
-                                <td class="action-buttons">
-                                    <button
-                                        type="button"
-                                        class="edit-button"
-                                        aria-label="Edit Wood Adhesive"
-                                        title="Edit item"
-                                    >
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
+                                    <td>
+                                        {{ item.category }}
+                                    </td>
 
-                                    <button
-                                        type="button"
-                                        class="delete-button"
-                                        aria-label="Delete Wood Adhesive"
-                                        title="Delete item"
+                                    <td class="quantity-cell">
+                                        {{ item.quantity }}
+                                    </td>
+
+                                    <td>
+                                        {{ item.minimum_level }}
+                                    </td>
+
+                                    <td>
+                                        {{ item.location or "—" }}
+                                    </td>
+
+                                    <td>
+
+                                        {% if item.quantity == 0 %}
+
+                                            <span class="status out">
+                                                Out of Stock
+                                            </span>
+
+                                        {% elif item.quantity <= item.minimum_level %}
+
+                                            <span class="status low">
+                                                Low Stock
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="status available">
+                                                Available
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                    <td>
+
+                                        <div class="table-actions">
+
+                                            <!-- Check stock in or out -->
+                                            <button
+                                                type="button"
+                                                class="icon-button adjust-button"
+                                                title="Check Stock In or Out"
+
+                                                data-item-id="{{ item.id }}"
+                                                data-item-name="{{ item.item_name }}"
+                                                data-current-quantity="{{ item.quantity }}"
+                                            >
+                                                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                                            </button>
+
+
+                                            <!-- Edit stock item -->
+                                            <button
+                                                type="button"
+                                                class="icon-button edit-button"
+                                                title="Edit Item"
+
+                                                data-item-id="{{ item.id }}"
+                                                data-item-code="{{ item.item_code }}"
+                                                data-item-name="{{ item.item_name }}"
+                                                data-category="{{ item.category }}"
+                                                data-quantity="{{ item.quantity }}"
+                                                data-minimum="{{ item.minimum_level }}"
+                                                data-unit="{{ item.unit }}"
+                                                data-location="{{ item.location }}"
+                                                data-notes="{{ item.notes }}"
+                                            >
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+
+
+                                            <!-- Delete stock item -->
+                                            <form
+                                                action="{{ url_for('delete_stock', item_id=item.id) }}"
+                                                method="POST"
+                                                class="delete-form"
+                                            >
+                                                <button
+                                                    type="submit"
+                                                    class="icon-button delete-button"
+                                                    title="Delete Item"
+                                                    data-item-name="{{ item.item_name }}"
+                                                >
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </form>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            {% else %}
+
+                                <tr>
+
+                                    <td
+                                        colspan="8"
+                                        class="empty-table"
                                     >
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
+                                        <i class="fa-solid fa-box-open"></i>
+
+                                        <strong>
+                                            No stock items found
+                                        </strong>
+
+                                        <span>
+                                            Add a stock item or change the filters.
+                                        </span>
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
 
                         </tbody>
 
@@ -523,80 +720,669 @@ Future features:
 
 
             <!-- ==================================================
-                 AVAILABLE SUPPLIERS
+                 STOCK HISTORY
             =================================================== -->
 
-            <section class="supplier-panel">
+            <section class="panel history-panel">
 
                 <div class="panel-heading">
+
                     <div>
+
+                        <h2>Recent Stock Activity</h2>
+
+                        <p>
+                            The latest stock additions, removals and edits.
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="history-list">
+
+                    {% for history in stock_history %}
+
+                        <article class="history-item">
+
+                            <div class="history-icon">
+
+                                {% if history.movement_type == "Stock In" %}
+
+                                    <i class="fa-solid fa-arrow-down"></i>
+
+                                {% elif history.movement_type == "Stock Out" %}
+
+                                    <i class="fa-solid fa-arrow-up"></i>
+
+                                {% else %}
+
+                                    <i class="fa-solid fa-pen"></i>
+
+                                {% endif %}
+
+                            </div>
+
+                            <div class="history-details">
+
+                                <strong>
+                                    {{ history.item_name }}
+                                </strong>
+
+                                <span>
+                                    {{ history.movement_type }}:
+                                    {{ history.previous_quantity }}
+                                    →
+                                    {{ history.new_quantity }}
+                                    {{ history.unit }}
+                                </span>
+
+                                {% if history.reason %}
+
+                                    <small>
+                                        {{ history.reason }}
+                                    </small>
+
+                                {% endif %}
+
+                            </div>
+
+                            <time>
+                                {{ history.created_at }}
+                            </time>
+
+                        </article>
+
+                    {% else %}
+
+                        <div class="empty-history">
+                            No stock activity has been recorded.
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </section>
+
+
+            <!-- ==================================================
+                 AVAILABLE SUPPLIERS
+
+                 This area is deliberately blank because supplier
+                 information will be added using an API later.
+            =================================================== -->
+
+            <section class="panel supplier-panel">
+
+                <div class="panel-heading">
+
+                    <div>
+
                         <h2>Available Suppliers</h2>
 
                         <p>
-                            Supplier information will later be loaded using
-                            an external API.
+                            Supplier API information will appear here.
                         </p>
+
                     </div>
 
-                    <!-- Placeholder refresh button for future API calls -->
-                    <button
-                        type="button"
-                        class="refresh-button"
-                        title="Refresh supplier information"
-                    >
-                        <i class="fa-solid fa-rotate"></i>
-                        Refresh
-                    </button>
                 </div>
 
-                <div class="supplier-grid">
-
-                    <!-- Temporary supplier card -->
-                    <article class="supplier-card">
-                        <div class="supplier-icon">
-                            <i class="fa-solid fa-building"></i>
-                        </div>
-
-                        <div>
-                            <h3>Melbourne Timber Supplies</h3>
-                            <p>Timber and construction materials</p>
-                            <span>API connection pending</span>
-                        </div>
-                    </article>
-
-                    <!-- Temporary supplier card -->
-                    <article class="supplier-card">
-                        <div class="supplier-icon">
-                            <i class="fa-solid fa-building"></i>
-                        </div>
-
-                        <div>
-                            <h3>Carpentry Hardware Direct</h3>
-                            <p>Hardware, fasteners and workshop tools</p>
-                            <span>API connection pending</span>
-                        </div>
-                    </article>
-
-                    <!-- Temporary supplier card -->
-                    <article class="supplier-card">
-                        <div class="supplier-icon">
-                            <i class="fa-solid fa-building"></i>
-                        </div>
-
-                        <div>
-                            <h3>Australian Wood Products</h3>
-                            <p>Timber boards, panels and finishes</p>
-                            <span>API connection pending</span>
-                        </div>
-                    </article>
-
-                </div>
+                <div
+                    id="supplier-api-results"
+                    class="supplier-api-results"
+                ></div>
 
             </section>
 
         </main>
 
     </div>
+
+
+    <!-- ==================================================
+         ADD STOCK MODAL
+    =================================================== -->
+
+    <div
+        class="modal"
+        id="add-stock-modal"
+        aria-hidden="true"
+    >
+
+        <div class="modal-background"></div>
+
+        <section class="modal-content">
+
+            <header class="modal-header">
+
+                <div>
+
+                    <h2>Add Stock Item</h2>
+
+                    <p>
+                        Enter the new stock item's information.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="modal-close"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </header>
+
+
+            <form
+                action="{{ url_for('add_stock') }}"
+                method="POST"
+                class="stock-form"
+            >
+
+                <div class="form-grid">
+
+                    <label>
+
+                        <span>Item Code *</span>
+
+                        <input
+                            type="text"
+                            name="item_code"
+                            required
+                            minlength="2"
+                            maxlength="20"
+                            placeholder="Example: STK-001"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Item Name *</span>
+
+                        <input
+                            type="text"
+                            name="item_name"
+                            required
+                            minlength="2"
+                            maxlength="100"
+                            placeholder="Example: Pine Boards"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Category *</span>
+
+                        <input
+                            type="text"
+                            name="category"
+                            required
+                            minlength="2"
+                            maxlength="50"
+                            placeholder="Example: Timber"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Unit *</span>
+
+                        <select
+                            name="unit"
+                            required
+                        >
+                            <option value="units">
+                                Units
+                            </option>
+
+                            <option value="pieces">
+                                Pieces
+                            </option>
+
+                            <option value="boards">
+                                Boards
+                            </option>
+
+                            <option value="metres">
+                                Metres
+                            </option>
+
+                            <option value="sheets">
+                                Sheets
+                            </option>
+
+                            <option value="boxes">
+                                Boxes
+                            </option>
+
+                            <option value="litres">
+                                Litres
+                            </option>
+                        </select>
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Starting Quantity *</span>
+
+                        <input
+                            type="number"
+                            name="quantity"
+                            required
+                            min="0"
+                            max="1000000"
+                            value="0"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Minimum Level *</span>
+
+                        <input
+                            type="number"
+                            name="minimum_level"
+                            required
+                            min="0"
+                            max="1000000"
+                            value="5"
+                        >
+
+                    </label>
+
+
+                    <label class="full-width">
+
+                        <span>Storage Location</span>
+
+                        <input
+                            type="text"
+                            name="location"
+                            maxlength="100"
+                            placeholder="Example: Warehouse Shelf A2"
+                        >
+
+                    </label>
+
+
+                    <label class="full-width">
+
+                        <span>Notes</span>
+
+                        <textarea
+                            name="notes"
+                            maxlength="500"
+                            rows="4"
+                            placeholder="Optional information about this item"
+                        ></textarea>
+
+                    </label>
+
+                </div>
+
+
+                <footer class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="secondary-button modal-cancel"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="primary-button"
+                    >
+                        <i class="fa-solid fa-plus"></i>
+                        Add Stock
+                    </button>
+
+                </footer>
+
+            </form>
+
+        </section>
+
+    </div>
+
+
+    <!-- ==================================================
+         EDIT STOCK MODAL
+    =================================================== -->
+
+    <div
+        class="modal"
+        id="edit-stock-modal"
+        aria-hidden="true"
+    >
+
+        <div class="modal-background"></div>
+
+        <section class="modal-content">
+
+            <header class="modal-header">
+
+                <div>
+
+                    <h2>Edit Stock Item</h2>
+
+                    <p>
+                        Update the selected stock record.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="modal-close"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </header>
+
+
+            <form
+                method="POST"
+                class="stock-form"
+                id="edit-stock-form"
+            >
+
+                <div class="form-grid">
+
+                    <label>
+
+                        <span>Item Code *</span>
+
+                        <input
+                            type="text"
+                            name="item_code"
+                            id="edit-item-code"
+                            required
+                            maxlength="20"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Item Name *</span>
+
+                        <input
+                            type="text"
+                            name="item_name"
+                            id="edit-item-name"
+                            required
+                            maxlength="100"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Category *</span>
+
+                        <input
+                            type="text"
+                            name="category"
+                            id="edit-category"
+                            required
+                            maxlength="50"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Unit *</span>
+
+                        <select
+                            name="unit"
+                            id="edit-unit"
+                            required
+                        >
+                            <option value="units">Units</option>
+                            <option value="pieces">Pieces</option>
+                            <option value="boards">Boards</option>
+                            <option value="metres">Metres</option>
+                            <option value="sheets">Sheets</option>
+                            <option value="boxes">Boxes</option>
+                            <option value="litres">Litres</option>
+                        </select>
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Quantity *</span>
+
+                        <input
+                            type="number"
+                            name="quantity"
+                            id="edit-quantity"
+                            required
+                            min="0"
+                            max="1000000"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>Minimum Level *</span>
+
+                        <input
+                            type="number"
+                            name="minimum_level"
+                            id="edit-minimum"
+                            required
+                            min="0"
+                            max="1000000"
+                        >
+
+                    </label>
+
+
+                    <label class="full-width">
+
+                        <span>Storage Location</span>
+
+                        <input
+                            type="text"
+                            name="location"
+                            id="edit-location"
+                            maxlength="100"
+                        >
+
+                    </label>
+
+
+                    <label class="full-width">
+
+                        <span>Notes</span>
+
+                        <textarea
+                            name="notes"
+                            id="edit-notes"
+                            maxlength="500"
+                            rows="4"
+                        ></textarea>
+
+                    </label>
+
+                </div>
+
+
+                <footer class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="secondary-button modal-cancel"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="primary-button"
+                    >
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        Save Changes
+                    </button>
+
+                </footer>
+
+            </form>
+
+        </section>
+
+    </div>
+
+
+    <!-- ==================================================
+         STOCK ADJUSTMENT MODAL
+    =================================================== -->
+
+    <div
+        class="modal"
+        id="adjust-stock-modal"
+        aria-hidden="true"
+    >
+
+        <div class="modal-background"></div>
+
+        <section class="modal-content small-modal">
+
+            <header class="modal-header">
+
+                <div>
+
+                    <h2>Adjust Stock</h2>
+
+                    <p id="adjust-item-description">
+                        Check stock in or out.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="modal-close"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </header>
+
+
+            <form
+                method="POST"
+                class="stock-form"
+                id="adjust-stock-form"
+            >
+
+                <label>
+
+                    <span>Adjustment Type *</span>
+
+                    <select
+                        name="adjustment_type"
+                        required
+                    >
+                        <option value="in">
+                            Stock In
+                        </option>
+
+                        <option value="out">
+                            Stock Out
+                        </option>
+                    </select>
+
+                </label>
+
+
+                <label>
+
+                    <span>Quantity *</span>
+
+                    <input
+                        type="number"
+                        name="amount"
+                        required
+                        min="1"
+                        max="1000000"
+                        value="1"
+                    >
+
+                </label>
+
+
+                <label>
+
+                    <span>Reason</span>
+
+                    <textarea
+                        name="reason"
+                        rows="3"
+                        maxlength="300"
+                        placeholder="Example: New delivery or used for Job 104"
+                    ></textarea>
+
+                </label>
+
+
+                <footer class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="secondary-button modal-cancel"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="primary-button"
+                    >
+                        Save Adjustment
+                    </button>
+
+                </footer>
+
+            </form>
+
+        </section>
+
+    </div>
+
+
+    <!-- JavaScript -->
+    <script
+        src="{{ url_for('static', filename='stock_tracker.js') }}"
+    ></script>
 
 </body>
 

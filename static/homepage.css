@@ -4,20 +4,10 @@ File: homepage.css
 Project: TimberOps
 
 Purpose:
-Styles the main TimberOps dashboard.
-
-Features:
-- Fixed, scrollable sidebar
-- Company logo area
-- Cardboard box inventory icon
-- Top navigation bar
-- Welcome card
-- Responsive layout
+Styles the TimberOps homepage dashboard.
 ==========================================================
 */
 
-
-/* Imports the Kameron font */
 @import url('https://fonts.googleapis.com/css2?family=Kameron:wght@400;500;600;700&display=swap');
 
 
@@ -49,6 +39,11 @@ body {
 }
 
 
+button {
+    font: inherit;
+}
+
+
 /* ======================================================
    SIDEBAR
 ====================================================== */
@@ -63,6 +58,7 @@ body {
     height: 100vh;
 
     background-color: #f0ead6;
+
     border-right: 2px solid #d8cfb2;
 
     display: flex;
@@ -84,6 +80,7 @@ body {
     min-height: 90px;
 
     background-color: #d9a45f;
+
     border-bottom: 2px solid #c89452;
 
     display: flex;
@@ -96,7 +93,6 @@ body {
 }
 
 
-/* TimberOps logo displayed in the top-left corner */
 .sidebar-logo {
     width: 80px;
     max-width: 100%;
@@ -126,10 +122,12 @@ body {
     overflow-x: hidden;
 
     padding: 12px 0;
+
+    scrollbar-width: thin;
+    scrollbar-color: #b9a474 #f0ead6;
 }
 
 
-/* Individual sidebar navigation buttons */
 .sidebar-link {
     width: 100%;
     min-height: 68px;
@@ -141,6 +139,7 @@ body {
     flex-shrink: 0;
 
     color: #5d7138;
+
     font-size: 27px;
 
     text-decoration: none;
@@ -154,14 +153,12 @@ body {
 }
 
 
-/* Navigation button hover effect */
 .sidebar-link:hover {
     background-color: #e5dcc1;
     color: #34451f;
 }
 
 
-/* Highlights the currently selected page */
 .sidebar-link.active {
     background-color: #dfd5b7;
     color: #34451f;
@@ -170,16 +167,12 @@ body {
 }
 
 
-/* Slight movement when a navigation button is selected */
 .sidebar-link:active {
     transform: scale(0.94);
 }
 
 
-/* ======================================================
-   SIDEBAR SCROLLBAR
-====================================================== */
-
+/* Sidebar scrollbar */
 .sidebar-menu::-webkit-scrollbar {
     width: 7px;
 }
@@ -202,15 +195,8 @@ body {
 }
 
 
-/* Firefox scrollbar styling */
-.sidebar-menu {
-    scrollbar-width: thin;
-    scrollbar-color: #b9a474 #f0ead6;
-}
-
-
 /* ======================================================
-   MAIN PAGE CONTAINER
+   MAIN CONTAINER
 ====================================================== */
 
 .main-container {
@@ -221,30 +207,33 @@ body {
 
 
 /* ======================================================
-   TOP NAVIGATION BAR
+   TOP BAR
 ====================================================== */
 
 .top-bar {
     height: 90px;
 
+    padding: 0 35px;
+
     background-color: #fbf8ef;
+
     border-bottom: 2px solid #d8cfb2;
 
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 60px 1fr 60px;
     align-items: center;
-
-    padding: 0 35px;
 
     position: sticky;
     top: 0;
+
+    overflow: visible;
 
     z-index: 500;
 }
 
 
 /* ======================================================
-   TOP MENU BUTTON
+   MENU BUTTON
 ====================================================== */
 
 .menu-button {
@@ -257,11 +246,219 @@ body {
     background-color: transparent;
 
     color: #5d7138;
+
     font-size: 30px;
 
     display: flex;
     justify-content: center;
     align-items: center;
+
+    cursor: pointer;
+}
+
+
+.menu-button:hover {
+    background-color: #ece4ce;
+    color: #34451f;
+}
+
+
+/* ======================================================
+   BRAND NAME
+====================================================== */
+
+.brand-name {
+    justify-self: center;
+
+    padding: 10px 28px;
+
+    background-color: #d9a45f;
+
+    color: #1f2937;
+
+    border-radius: 8px;
+
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+
+/* ======================================================
+   PROFILE MENU
+====================================================== */
+
+.profile-menu {
+    position: relative;
+
+    justify-self: end;
+
+    width: 56px;
+    height: 56px;
+
+    z-index: 2000;
+}
+
+
+/* Profile icon button */
+.profile-icon {
+    width: 56px;
+    height: 56px;
+
+    padding: 0;
+
+    border: 4px solid #6d8045;
+    border-radius: 50%;
+
+    background-color: #fbf8ef;
+
+    color: #5d7138;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-size: 25px;
+
+    cursor: pointer;
+
+    position: relative;
+
+    z-index: 2001;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.profile-icon:hover {
+    background-color: #ece4ce;
+    color: #34451f;
+}
+
+
+.profile-icon:active {
+    transform: scale(0.95);
+}
+
+
+/* ======================================================
+   PROFILE DROPDOWN
+====================================================== */
+
+.profile-dropdown {
+    position: absolute;
+
+    top: 68px;
+    right: 0;
+
+    width: 245px;
+
+    padding: 12px;
+
+    background-color: #fffdf7;
+
+    border: 1px solid #d8cfb2;
+    border-radius: 12px;
+
+    box-shadow: 0 12px 30px rgba(55, 45, 25, 0.18);
+
+    display: none;
+
+    z-index: 3000;
+}
+
+
+/* JavaScript adds this class when the menu is opened */
+.profile-dropdown.profile-dropdown-open {
+    display: block;
+}
+
+
+/* Dropdown heading */
+.profile-dropdown-heading {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 10px 8px 14px;
+
+    border-bottom: 1px solid #e3dcc5;
+}
+
+
+.dropdown-profile-icon {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+
+    background-color: #e6edd8;
+    color: #5d7138;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-size: 19px;
+
+    flex-shrink: 0;
+}
+
+
+.profile-details {
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+
+.profile-details strong {
+    color: #293241;
+
+    font-size: 16px;
+}
+
+
+.profile-details span {
+    color: #747d89;
+
+    font-size: 13px;
+}
+
+
+/* ======================================================
+   LOGOUT BUTTON
+====================================================== */
+
+.logout-form {
+    margin-top: 10px;
+}
+
+
+.logout-button {
+    width: 100%;
+
+    padding: 11px 13px;
+
+    border: none;
+    border-radius: 8px;
+
+    background-color: transparent;
+    color: #9c2f2f;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    font-family: 'Kameron', serif;
+    font-size: 15px;
+    font-weight: 700;
 
     cursor: pointer;
 
@@ -271,64 +468,14 @@ body {
 }
 
 
-/* Menu button hover effect */
-.menu-button:hover {
-    background-color: #ece4ce;
-    color: #34451f;
-}
-
-
-/* Keyboard focus validation for accessibility */
-.menu-button:focus-visible,
-.sidebar-link:focus-visible {
-    outline: 3px solid #9a7a45;
-    outline-offset: -3px;
+.logout-button:hover {
+    background-color: #f5dada;
+    color: #7f2020;
 }
 
 
 /* ======================================================
-   TOP BRAND NAME
-====================================================== */
-
-.brand-name {
-    background-color: #d9a45f;
-
-    color: #1f2937;
-
-    font-size: 30px;
-    font-weight: 700;
-    line-height: 1.2;
-
-    padding: 10px 28px;
-
-    border-radius: 8px;
-}
-
-
-/* ======================================================
-   PROFILE ICON
-====================================================== */
-
-.profile-icon {
-    width: 56px;
-    height: 56px;
-
-    border: 4px solid #6d8045;
-    border-radius: 50%;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    color: #5d7138;
-    font-size: 25px;
-
-    background-color: #fbf8ef;
-}
-
-
-/* ======================================================
-   MAIN CONTENT AREA
+   MAIN CONTENT
 ====================================================== */
 
 .content {
@@ -336,7 +483,6 @@ body {
 }
 
 
-/* Main page title */
 .page-title {
     margin-bottom: 34px;
 
@@ -378,7 +524,6 @@ body {
 }
 
 
-/* Welcome card heading */
 .welcome-text h2 {
     margin-bottom: 18px;
 
@@ -390,7 +535,6 @@ body {
 }
 
 
-/* Welcome card description */
 .welcome-text p {
     margin-bottom: 34px;
 
@@ -402,7 +546,7 @@ body {
 
 
 /* ======================================================
-   WELCOME CARD IMAGE
+   WELCOME IMAGE
 ====================================================== */
 
 .timber-image {
@@ -421,7 +565,20 @@ body {
 
 
 /* ======================================================
-   TABLET RESPONSIVE LAYOUT
+   ACCESSIBILITY
+====================================================== */
+
+.menu-button:focus-visible,
+.profile-icon:focus-visible,
+.logout-button:focus-visible,
+.sidebar-link:focus-visible {
+    outline: 3px solid #9a7a45;
+    outline-offset: 2px;
+}
+
+
+/* ======================================================
+   TABLET RESPONSIVE DESIGN
 ====================================================== */
 
 @media (max-width: 900px) {
@@ -460,6 +617,8 @@ body {
         height: 76px;
 
         padding: 0 22px;
+
+        grid-template-columns: 50px 1fr 50px;
     }
 
 
@@ -472,17 +631,28 @@ body {
 
 
     .brand-name {
-        font-size: 23px;
-
         padding: 8px 18px;
+
+        font-size: 23px;
+    }
+
+
+    .profile-menu,
+    .profile-icon {
+        width: 48px;
+        height: 48px;
     }
 
 
     .profile-icon {
-        width: 48px;
-        height: 48px;
+        border-width: 3px;
 
         font-size: 21px;
+    }
+
+
+    .profile-dropdown {
+        top: 60px;
     }
 
 
@@ -515,7 +685,7 @@ body {
 
 
 /* ======================================================
-   MOBILE RESPONSIVE LAYOUT
+   MOBILE RESPONSIVE DESIGN
 ====================================================== */
 
 @media (max-width: 600px) {
@@ -551,14 +721,16 @@ body {
     .top-bar {
         height: 68px;
 
-        padding: 0 14px;
+        padding: 0 13px;
+
+        grid-template-columns: 44px 1fr 44px;
     }
 
 
     .brand-name {
-        font-size: 18px;
-
         padding: 7px 12px;
+
+        font-size: 18px;
     }
 
 
@@ -570,13 +742,22 @@ body {
     }
 
 
+    .profile-menu,
     .profile-icon {
         width: 42px;
         height: 42px;
+    }
 
-        border-width: 3px;
 
+    .profile-icon {
         font-size: 18px;
+    }
+
+
+    .profile-dropdown {
+        top: 54px;
+
+        width: 215px;
     }
 
 
