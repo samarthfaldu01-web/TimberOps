@@ -1769,13 +1769,6 @@ with app.app_context():
     initialise_database()
 
 
-if __name__ == "__main__":
-
-    app.run(
-        debug=True
-    )
-
-if __name__ == "__main__":
     # ==========================================================
 # JOB SCHEDULING OPTIONS
 # ==========================================================
@@ -3110,3 +3103,11 @@ def delete_job(
     return redirect(
         url_for("job_scheduling"),
     )
+
+# ============================================================
+# START APPLICATION
+# ============================================================
+
+if __name__ == "__main__":
+    app.run(debug=True)
+    

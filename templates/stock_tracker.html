@@ -28,7 +28,10 @@
          SIDEBAR
     =================================================== -->
 
-    <aside class="sidebar">
+    <aside
+        class="sidebar"
+        id="sidebar"
+    >
 
         <div class="logo-box">
 
@@ -45,6 +48,7 @@
             aria-label="Dashboard navigation"
         >
 
+            <!-- Home -->
             <a
                 href="{{ url_for('home') }}"
                 class="sidebar-link"
@@ -54,6 +58,7 @@
                 <i class="fa-solid fa-house"></i>
             </a>
 
+            <!-- Stock Tracker -->
             <a
                 href="{{ url_for('stock_tracker') }}"
                 class="sidebar-link active"
@@ -63,6 +68,7 @@
                 <i class="fa-solid fa-box"></i>
             </a>
 
+            <!-- Calendar -->
             <a
                 href="#"
                 class="sidebar-link"
@@ -72,45 +78,66 @@
                 <i class="fa-solid fa-calendar-days"></i>
             </a>
 
+            <!-- Messages -->
             <a
                 href="#"
-                class="sidebar-link"
+                class="sidebar-link coming-soon"
+                data-feature="Messages"
                 title="Messages"
                 aria-label="Messages"
             >
                 <i class="fa-solid fa-comment"></i>
             </a>
 
+            <!-- Documents -->
             <a
                 href="#"
-                class="sidebar-link"
+                class="sidebar-link coming-soon"
+                data-feature="Documents"
                 title="Documents"
                 aria-label="Documents"
             >
                 <i class="fa-solid fa-file-lines"></i>
             </a>
 
+            <!-- Information -->
             <a
                 href="#"
-                class="sidebar-link"
+                class="sidebar-link coming-soon"
+                data-feature="Information"
                 title="Information"
                 aria-label="Information"
             >
                 <i class="fa-solid fa-circle-info"></i>
             </a>
 
+            <!-- Favourites -->
             <a
                 href="#"
-                class="sidebar-link"
+                class="sidebar-link coming-soon"
+                data-feature="Favourites"
+                title="Favourites"
+                aria-label="Favourites"
+            >
+                <i class="fa-solid fa-star"></i>
+            </a>
+
+            <!-- Reports -->
+            <a
+                href="#"
+                class="sidebar-link coming-soon"
+                data-feature="Reports"
                 title="Reports"
                 aria-label="Reports"
             >
                 <i class="fa-solid fa-chart-column"></i>
             </a>
 
+            <!-- Settings -->
             <a
                 href="#"
-                class="sidebar-link"
+                class="sidebar-link coming-soon"
+                data-feature="Settings"
                 title="Settings"
                 aria-label="Settings"
             >
@@ -126,14 +153,23 @@
          MAIN PAGE
     =================================================== -->
 
-    <div class="main-container">
+    <div
+        class="main-container"
+        id="main-container"
+    >
+
+        <!-- ==================================================
+             TOP BAR
+        =================================================== -->
 
         <header class="top-bar">
 
             <button
                 type="button"
                 class="menu-button"
+                id="sidebar-toggle"
                 aria-label="Navigation menu"
+                title="Menu"
             >
                 <i class="fa-solid fa-bars"></i>
             </button>
@@ -160,9 +196,16 @@
         </header>
 
 
+        <!-- ==================================================
+             PAGE CONTENT
+        =================================================== -->
+
         <main class="content">
 
-            <!-- Flash messages -->
+            <!-- ==================================================
+                 FLASH MESSAGES
+            =================================================== -->
+
             {% with messages = get_flashed_messages(with_categories=true) %}
 
                 {% if messages %}
@@ -196,7 +239,10 @@
             {% endwith %}
 
 
-            <!-- Page heading -->
+            <!-- ==================================================
+                 PAGE HEADING
+            =================================================== -->
+
             <section class="page-heading">
 
                 <div>
@@ -214,15 +260,16 @@
 
                     <a
                         href="{{ url_for(
-                            'export_stock_csv',
-                            search=search_text,
-                            category=selected_category,
-                            status=selected_status,
-                            sort=selected_sort
+                            'export_csv',
+                            search=filters.search,
+                            category=filters.category,
+                            status=filters.status,
+                            sort=filters.sort
                         ) }}"
                         class="secondary-button"
                     >
                         <i class="fa-solid fa-file-csv"></i>
+
                         Export CSV
                     </a>
 
@@ -232,6 +279,7 @@
                         id="open-add-modal"
                     >
                         <i class="fa-solid fa-plus"></i>
+
                         Add Stock Item
                     </button>
 
@@ -253,11 +301,13 @@
                     </div>
 
                     <div>
+
                         <span>Stock Records</span>
 
                         <strong>
                             {{ summary.total_items }}
                         </strong>
+
                     </div>
 
                 </article>
@@ -270,11 +320,13 @@
                     </div>
 
                     <div>
+
                         <span>Total Quantity</span>
 
                         <strong>
                             {{ summary.total_quantity }}
                         </strong>
+
                     </div>
 
                 </article>
@@ -287,11 +339,13 @@
                     </div>
 
                     <div>
+
                         <span>Stock Value</span>
 
                         <strong>
                             ${{ "%.2f"|format(summary.total_value) }}
                         </strong>
+
                     </div>
 
                 </article>
@@ -304,11 +358,13 @@
                     </div>
 
                     <div>
+
                         <span>Low Stock</span>
 
                         <strong>
-                            {{ summary.low_stock_items }}
+                            {{ summary.low_items }}
                         </strong>
+
                     </div>
 
                 </article>
@@ -321,11 +377,13 @@
                     </div>
 
                     <div>
+
                         <span>Out of Stock</span>
 
                         <strong>
-                            {{ summary.out_of_stock_items }}
+                            {{ summary.out_items }}
                         </strong>
+
                     </div>
 
                 </article>
@@ -346,7 +404,7 @@
                         <h2>Current Stock</h2>
 
                         <p>
-                            {{ total_records }} matching stock record(s).
+                            {{ total }} matching stock record(s).
                         </p>
 
                     </div>
@@ -354,7 +412,10 @@
                 </div>
 
 
-                <!-- Search and filtering -->
+                <!-- ==================================================
+                     SEARCH AND FILTERING
+                =================================================== -->
+
                 <form
                     action="{{ url_for('stock_tracker') }}"
                     method="GET"
@@ -369,7 +430,7 @@
                         <input
                             type="search"
                             name="search"
-                            value="{{ search_text }}"
+                            value="{{ filters.search }}"
                             placeholder="Search name, code, specification or location"
                             maxlength="100"
                         >
@@ -377,11 +438,13 @@
                     </div>
 
 
+                    <!-- Category -->
                     <select
                         name="category"
                         id="category-filter"
                         aria-label="Filter by category"
                     >
+
                         <option value="">
                             All Categories
                         </option>
@@ -389,30 +452,33 @@
                         {% for category in categories %}
 
                             <option
-                                value="{{ category.category }}"
-                                {% if selected_category == category.category %}
+                                value="{{ category }}"
+                                {% if filters.category == category %}
                                     selected
                                 {% endif %}
                             >
-                                {{ category.category }}
+                                {{ category }}
                             </option>
 
                         {% endfor %}
+
                     </select>
 
 
+                    <!-- Status -->
                     <select
                         name="status"
                         id="status-filter"
                         aria-label="Filter by status"
                     >
+
                         <option value="">
                             All Statuses
                         </option>
 
                         <option
                             value="available"
-                            {% if selected_status == "available" %}
+                            {% if filters.status == "available" %}
                                 selected
                             {% endif %}
                         >
@@ -421,7 +487,7 @@
 
                         <option
                             value="low"
-                            {% if selected_status == "low" %}
+                            {% if filters.status == "low" %}
                                 selected
                             {% endif %}
                         >
@@ -430,23 +496,26 @@
 
                         <option
                             value="out"
-                            {% if selected_status == "out" %}
+                            {% if filters.status == "out" %}
                                 selected
                             {% endif %}
                         >
                             Out of Stock
                         </option>
+
                     </select>
 
 
+                    <!-- Sorting -->
                     <select
                         name="sort"
                         id="sort-filter"
                         aria-label="Sort stock"
                     >
+
                         <option
                             value="updated_desc"
-                            {% if selected_sort == "updated_desc" %}
+                            {% if filters.sort == "updated_desc" %}
                                 selected
                             {% endif %}
                         >
@@ -454,53 +523,44 @@
                         </option>
 
                         <option
-                            value="updated_asc"
-                            {% if selected_sort == "updated_asc" %}
-                                selected
-                            {% endif %}
-                        >
-                            Oldest Updated
-                        </option>
-
-                        <option
                             value="name_asc"
-                            {% if selected_sort == "name_asc" %}
+                            {% if filters.sort == "name_asc" %}
                                 selected
                             {% endif %}
                         >
-                            Name A–Z
+                            Name A-Z
                         </option>
 
                         <option
                             value="name_desc"
-                            {% if selected_sort == "name_desc" %}
+                            {% if filters.sort == "name_desc" %}
                                 selected
                             {% endif %}
                         >
-                            Name Z–A
+                            Name Z-A
                         </option>
 
                         <option
                             value="quantity_asc"
-                            {% if selected_sort == "quantity_asc" %}
+                            {% if filters.sort == "quantity_asc" %}
                                 selected
                             {% endif %}
                         >
-                            Quantity Low–High
+                            Quantity Low-High
                         </option>
 
                         <option
                             value="quantity_desc"
-                            {% if selected_sort == "quantity_desc" %}
+                            {% if filters.sort == "quantity_desc" %}
                                 selected
                             {% endif %}
                         >
-                            Quantity High–Low
+                            Quantity High-Low
                         </option>
 
                         <option
                             value="value_desc"
-                            {% if selected_sort == "value_desc" %}
+                            {% if filters.sort == "value_desc" %}
                                 selected
                             {% endif %}
                         >
@@ -509,12 +569,13 @@
 
                         <option
                             value="code_asc"
-                            {% if selected_sort == "code_asc" %}
+                            {% if filters.sort == "code_asc" %}
                                 selected
                             {% endif %}
                         >
                             Item Code
                         </option>
+
                     </select>
 
 
@@ -536,7 +597,10 @@
                 </form>
 
 
-                <!-- Stock table -->
+                <!-- ==================================================
+                     STOCK TABLE
+                =================================================== -->
+
                 <div class="table-wrapper">
 
                     <table class="stock-table">
@@ -544,6 +608,7 @@
                         <thead>
 
                             <tr>
+
                                 <th>Code</th>
                                 <th>Item</th>
                                 <th>Category</th>
@@ -554,19 +619,22 @@
                                 <th>Location</th>
                                 <th>Status</th>
                                 <th>Actions</th>
+
                             </tr>
 
                         </thead>
 
+
                         <tbody>
 
-                            {% for item in stock_items %}
+                            {% for item in items %}
 
                                 <tr>
 
                                     <td class="item-code">
                                         {{ item.item_code }}
                                     </td>
+
 
                                     <td class="item-description-cell">
 
@@ -584,30 +652,39 @@
 
                                     </td>
 
+
                                     <td>
                                         {{ item.category }}
                                     </td>
 
+
                                     <td class="quantity-cell">
+
                                         {{ item.quantity }}
                                         {{ item.unit }}
+
                                     </td>
+
 
                                     <td>
                                         {{ item.minimum_level }}
                                     </td>
 
+
                                     <td>
                                         ${{ "%.2f"|format(item.unit_cost) }}
                                     </td>
+
 
                                     <td>
                                         ${{ "%.2f"|format(item.stock_value) }}
                                     </td>
 
+
                                     <td>
                                         {{ item.location or "—" }}
                                     </td>
+
 
                                     <td>
 
@@ -617,10 +694,12 @@
 
                                     </td>
 
+
                                     <td>
 
                                         <div class="table-actions">
 
+                                            <!-- Adjust quantity -->
                                             <button
                                                 type="button"
                                                 class="icon-button adjust-button"
@@ -639,6 +718,7 @@
                                             </button>
 
 
+                                            <!-- Edit -->
                                             <button
                                                 type="button"
                                                 class="icon-button edit-button"
@@ -652,18 +732,19 @@
                                                 data-item-code="{{ item.item_code }}"
                                                 data-item-name="{{ item.item_name }}"
                                                 data-category="{{ item.category }}"
-                                                data-specification="{{ item.specification }}"
+                                                data-specification="{{ item.specification or '' }}"
                                                 data-quantity="{{ item.quantity }}"
                                                 data-minimum="{{ item.minimum_level }}"
                                                 data-unit="{{ item.unit }}"
-                                                data-location="{{ item.location }}"
+                                                data-location="{{ item.location or '' }}"
                                                 data-unit-cost="{{ item.unit_cost }}"
-                                                data-notes="{{ item.notes }}"
+                                                data-notes="{{ item.notes or '' }}"
                                             >
                                                 <i class="fa-solid fa-pen"></i>
                                             </button>
 
 
+                                            <!-- Delete -->
                                             <form
                                                 action="{{ url_for(
                                                     'delete_stock',
@@ -672,11 +753,6 @@
                                                 method="POST"
                                                 class="delete-form"
                                             >
-                                                <input
-                                                    type="hidden"
-                                                    name="csrf_token"
-                                                    value="{{ csrf_token() }}"
-                                                >
 
                                                 <button
                                                     type="submit"
@@ -686,6 +762,7 @@
                                                 >
                                                     <i class="fa-solid fa-trash"></i>
                                                 </button>
+
                                             </form>
 
                                         </div>
@@ -693,6 +770,7 @@
                                     </td>
 
                                 </tr>
+
 
                             {% else %}
 
@@ -702,6 +780,7 @@
                                         colspan="10"
                                         class="empty-table"
                                     >
+
                                         <i class="fa-solid fa-box-open"></i>
 
                                         <strong>
@@ -711,6 +790,7 @@
                                         <span>
                                             Add an item or change the current filters.
                                         </span>
+
                                     </td>
 
                                 </tr>
@@ -724,7 +804,10 @@
                 </div>
 
 
-                <!-- Pagination -->
+                <!-- ==================================================
+                     PAGINATION
+                =================================================== -->
+
                 {% if total_pages > 1 %}
 
                     <nav
@@ -738,13 +821,14 @@
                                 href="{{ url_for(
                                     'stock_tracker',
                                     page=page - 1,
-                                    search=search_text,
-                                    category=selected_category,
-                                    status=selected_status,
-                                    sort=selected_sort
+                                    search=filters.search,
+                                    category=filters.category,
+                                    status=filters.status,
+                                    sort=filters.sort
                                 ) }}"
                             >
                                 <i class="fa-solid fa-chevron-left"></i>
+
                                 Previous
                             </a>
 
@@ -762,13 +846,14 @@
                                 href="{{ url_for(
                                     'stock_tracker',
                                     page=page + 1,
-                                    search=search_text,
-                                    category=selected_category,
-                                    status=selected_status,
-                                    sort=selected_sort
+                                    search=filters.search,
+                                    category=filters.category,
+                                    status=filters.status,
+                                    sort=filters.sort
                                 ) }}"
                             >
                                 Next
+
                                 <i class="fa-solid fa-chevron-right"></i>
                             </a>
 
@@ -782,7 +867,7 @@
 
 
             <!-- ==================================================
-                 STOCK ACTIVITY
+                 RECENT STOCK ACTIVITY
             =================================================== -->
 
             <section class="panel">
@@ -790,18 +875,21 @@
                 <div class="panel-heading">
 
                     <div>
+
                         <h2>Recent Stock Activity</h2>
 
                         <p>
                             Latest stock additions, removals and quantity edits.
                         </p>
+
                     </div>
 
                 </div>
 
+
                 <div class="history-list">
 
-                    {% for movement in movements %}
+                    {% for movement in activity %}
 
                         <article class="history-item">
 
@@ -823,6 +911,7 @@
 
                             </div>
 
+
                             <div class="history-details">
 
                                 <strong>
@@ -830,12 +919,19 @@
                                 </strong>
 
                                 <span>
+
                                     {{ movement.movement_type }}:
+
                                     {{ movement.previous_quantity }}
+
                                     →
+
                                     {{ movement.new_quantity }}
+
                                     {{ movement.unit }}
+
                                 </span>
+
 
                                 {% if movement.reason %}
 
@@ -847,11 +943,13 @@
 
                             </div>
 
+
                             <time>
                                 {{ movement.created_at }}
                             </time>
 
                         </article>
+
 
                     {% else %}
 
@@ -867,13 +965,12 @@
 
 
             <!-- ==================================================
-                 SUPPLIER API
+                 SUPPLIER SEARCH
             =================================================== -->
 
             <section
                 class="panel supplier-panel"
                 id="supplier-panel"
-                data-api-url="{{ url_for('supplier_search') }}"
             >
 
                 <div class="panel-heading">
@@ -892,25 +989,73 @@
                 </div>
 
 
-                <div class="supplier-search-form">
+                <!--
+                    The current Flask backend performs the Google
+                    supplier search inside the stock_tracker route,
+                    so this is a normal GET form rather than a
+                    non-existent supplier_search endpoint.
+                -->
+
+                <form
+                    action="{{ url_for('stock_tracker') }}"
+                    method="GET"
+                    class="supplier-search-form"
+                >
+
+                    <!-- Preserve the current stock filters -->
+                    <input
+                        type="hidden"
+                        name="search"
+                        value="{{ filters.search }}"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="category"
+                        value="{{ filters.category }}"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="status"
+                        value="{{ filters.status }}"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="sort"
+                        value="{{ filters.sort }}"
+                    >
+
 
                     <label class="supplier-field">
 
                         <span>Stock Item</span>
 
-                        <select id="supplier-item-select">
+                        <select
+                            name="supplier_item_id"
+                            id="supplier-item-select"
+                            required
+                        >
 
                             <option value="">
                                 Select a stock item
                             </option>
 
-                            {% for item in supplier_items %}
+                            {% for item in all_items %}
 
-                                <option value="{{ item.id }}">
+                                <option
+                                    value="{{ item.id }}"
+                                    {% if supplier_item_id == item.id %}
+                                        selected
+                                    {% endif %}
+                                >
                                     {{ item.item_name }}
+
                                     {% if item.specification %}
                                         — {{ item.specification }}
                                     {% endif %}
+
                                 </option>
 
                             {% endfor %}
@@ -926,32 +1071,41 @@
 
                         <input
                             type="text"
+                            name="supplier_suburb"
                             id="supplier-suburb"
                             maxlength="80"
-                            value="Melbourne VIC"
+                            value="{{ supplier_suburb }}"
                             placeholder="Example: Dandenong VIC"
+                            required
                         >
 
                     </label>
 
 
                     <button
-                        type="button"
+                        type="submit"
                         id="find-suppliers-button"
                         class="primary-button supplier-search-button"
                     >
                         <i class="fa-solid fa-magnifying-glass"></i>
+
                         Find Suppliers
                     </button>
 
-                </div>
+                </form>
 
 
-                <p
-                    id="supplier-search-status"
-                    class="supplier-search-status"
-                    aria-live="polite"
-                ></p>
+                <!-- Supplier error -->
+                {% if supplier_error %}
+
+                    <p
+                        class="supplier-search-status"
+                        aria-live="polite"
+                    >
+                        {{ supplier_error }}
+                    </p>
+
+                {% endif %}
 
 
                 <div
@@ -959,34 +1113,125 @@
                     class="supplier-api-results"
                 >
 
-                    <div class="supplier-empty-state">
+                    {% if suppliers is not none %}
 
-                        <i class="fa-solid fa-truck"></i>
+                        {% if suppliers %}
 
-                        <strong>
-                            No supplier search completed
-                        </strong>
+                            {% for supplier in suppliers %}
 
-                        <span>
-                            Select a stock item and enter a Melbourne suburb.
-                        </span>
+                                <article class="supplier-result-card">
 
-                    </div>
+                                    <div class="supplier-result-icon">
+                                        <i class="fa-solid fa-store"></i>
+                                    </div>
+
+
+                                    <div class="supplier-result-details">
+
+                                        <h3>
+                                            {{ supplier.name }}
+                                        </h3>
+
+                                        <span class="supplier-type">
+                                            {{ supplier.type }}
+                                        </span>
+
+                                        <p>
+                                            {{ supplier.address }}
+                                        </p>
+
+
+                                        {% if supplier.status %}
+
+                                            <span class="supplier-business-status">
+
+                                                {% if supplier.status == "OPERATIONAL" %}
+                                                    Operational
+                                                {% else %}
+                                                    {{ supplier.status|replace('_', ' ')|title }}
+                                                {% endif %}
+
+                                            </span>
+
+                                        {% endif %}
+
+
+                                        {% if supplier.maps_url %}
+
+                                            <a
+                                                href="{{ supplier.maps_url }}"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="supplier-map-link"
+                                            >
+                                                <i class="fa-solid fa-location-dot"></i>
+
+                                                View on Google Maps
+                                            </a>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </article>
+
+                            {% endfor %}
+
+
+                        {% else %}
+
+                            <div class="supplier-empty-state">
+
+                                <i class="fa-solid fa-store-slash"></i>
+
+                                <strong>
+                                    No suppliers were found
+                                </strong>
+
+                                <span>
+                                    Try another suburb or stock item.
+                                </span>
+
+                            </div>
+
+                        {% endif %}
+
+
+                    {% else %}
+
+                        <div class="supplier-empty-state">
+
+                            <i class="fa-solid fa-truck"></i>
+
+                            <strong>
+                                No supplier search completed
+                            </strong>
+
+                            <span>
+                                Select a stock item and enter a Melbourne suburb.
+                            </span>
+
+                        </div>
+
+                    {% endif %}
 
                 </div>
 
 
                 <p class="supplier-warning">
+
                     Supplier results do not confirm that the selected
                     item is currently in stock. Contact the supplier
                     before ordering.
+
                 </p>
 
-                <!-- Google Maps attribution is required when displaying
-                     Places information without a Google map. -->
+
                 <div class="google-maps-attribution">
+
                     Supplier information provided by
                     <strong>Google Maps</strong>
+
                 </div>
 
             </section>
@@ -1004,10 +1249,14 @@
         class="modal"
         id="add-stock-modal"
         aria-hidden="true"
+
+        data-open-on-load="{% if show_add %}true{% else %}false{% endif %}"
+
         hidden
     >
 
         <div class="modal-background"></div>
+
 
         <section
             class="modal-content"
@@ -1019,6 +1268,7 @@
             <header class="modal-header">
 
                 <div>
+
                     <h2 id="add-stock-title">
                         Add Carpentry Stock Item
                     </h2>
@@ -1026,7 +1276,9 @@
                     <p>
                         Enter the material, hardware or tool information.
                     </p>
+
                 </div>
+
 
                 <button
                     type="button"
@@ -1046,15 +1298,10 @@
                 id="add-stock-form"
             >
 
-                <input
-                    type="hidden"
-                    name="csrf_token"
-                    value="{{ csrf_token() }}"
-                >
-
                 <div class="form-grid">
 
                     <label>
+
                         <span>Item Code *</span>
 
                         <input
@@ -1066,10 +1313,12 @@
                             pattern="[A-Za-z0-9_-]{2,20}"
                             placeholder="Example: TIM-001"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Item Name *</span>
 
                         <input
@@ -1083,6 +1332,7 @@
                         >
 
                         <datalist id="carpentry-item-examples">
+
                             <option value="MGP10 Radiata Pine">
                             <option value="Tasmanian Oak DAR">
                             <option value="Victorian Ash DAR">
@@ -1098,100 +1348,77 @@
                             <option value="Clear Polyurethane Finish">
                             <option value="120 Grit Sandpaper">
                             <option value="Circular Saw Blade">
+
                         </datalist>
+
                     </label>
 
 
                     <label>
+
                         <span>Category *</span>
 
                         <select
                             name="category"
                             required
                         >
-                            <option value="" selected disabled>
+
+                            <option
+                                value=""
+                                selected
+                                disabled
+                            >
                                 Select a category
                             </option>
 
-                            <option value="Structural Timber">
-                                Structural Timber
-                            </option>
+                            {% for category in categories %}
 
-                            <option value="Dressed Timber">
-                                Dressed Timber
-                            </option>
+                                <option value="{{ category }}">
+                                    {{ category }}
+                                </option>
 
-                            <option value="Decking Timber">
-                                Decking Timber
-                            </option>
+                            {% endfor %}
 
-                            <option value="Sheet Materials">
-                                Sheet Materials
-                            </option>
-
-                            <option value="Hardware and Fixings">
-                                Hardware and Fixings
-                            </option>
-
-                            <option value="Adhesives">
-                                Adhesives
-                            </option>
-
-                            <option value="Finishes and Coatings">
-                                Finishes and Coatings
-                            </option>
-
-                            <option value="Abrasives">
-                                Abrasives
-                            </option>
-
-                            <option value="Hand Tools">
-                                Hand Tools
-                            </option>
-
-                            <option value="Power Tools">
-                                Power Tools
-                            </option>
-
-                            <option value="Tool Accessories">
-                                Tool Accessories
-                            </option>
-
-                            <option value="Safety Equipment">
-                                Safety Equipment
-                            </option>
                         </select>
+
                     </label>
 
 
                     <label>
+
                         <span>Measurement Unit *</span>
 
                         <select
                             name="unit"
                             required
                         >
-                            <option value="" selected disabled>
+
+                            <option
+                                value=""
+                                selected
+                                disabled
+                            >
                                 Select a unit
                             </option>
 
-                            <option value="lengths">Lengths</option>
-                            <option value="boards">Boards</option>
-                            <option value="sheets">Sheets</option>
-                            <option value="pieces">Pieces</option>
-                            <option value="packs">Packs</option>
-                            <option value="boxes">Boxes</option>
-                            <option value="units">Individual Units</option>
-                            <option value="litres">Litres</option>
-                            <option value="tubes">Tubes</option>
-                            <option value="rolls">Rolls</option>
-                            <option value="kilograms">Kilograms</option>
+                            {% for unit in units %}
+
+                                <option value="{{ unit }}">
+                                    {{ unit|title }}
+                                </option>
+
+                            {% endfor %}
+
                         </select>
+
                     </label>
 
 
                     <label class="full-width">
-                        <span>Size, Grade or Specification</span>
+
+                        <span>
+                            Size, Grade or Specification
+                        </span>
 
                         <input
                             type="text"
@@ -1199,10 +1426,12 @@
                             maxlength="200"
                             placeholder="Example: MGP10, 90 × 35 mm, 2.4 m length"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Starting Quantity *</span>
 
                         <input
@@ -1214,10 +1443,12 @@
                             step="1"
                             value="0"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Reorder Level *</span>
 
                         <input
@@ -1229,10 +1460,12 @@
                             step="1"
                             value="5"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Unit Cost in AUD</span>
 
                         <input
@@ -1244,10 +1477,12 @@
                             value="0.00"
                             placeholder="Example: 18.50"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Storage Location</span>
 
                         <input
@@ -1256,10 +1491,12 @@
                             maxlength="100"
                             placeholder="Example: Timber Rack A, Bay 2"
                         >
+
                     </label>
 
 
                     <label class="full-width">
+
                         <span>Notes</span>
 
                         <textarea
@@ -1268,6 +1505,7 @@
                             rows="4"
                             placeholder="Species, grade, finish, condition or ordering information"
                         ></textarea>
+
                     </label>
 
                 </div>
@@ -1282,11 +1520,13 @@
                         Cancel
                     </button>
 
+
                     <button
                         type="submit"
                         class="primary-button"
                     >
                         <i class="fa-solid fa-plus"></i>
+
                         Add Stock Item
                     </button>
 
@@ -1307,10 +1547,14 @@
         class="modal"
         id="edit-stock-modal"
         aria-hidden="true"
+
+        data-open-on-load="{% if edit_item %}true{% else %}false{% endif %}"
+
         hidden
     >
 
         <div class="modal-background"></div>
+
 
         <section
             class="modal-content"
@@ -1322,6 +1566,7 @@
             <header class="modal-header">
 
                 <div>
+
                     <h2 id="edit-stock-title">
                         Edit Stock Item
                     </h2>
@@ -1329,7 +1574,9 @@
                     <p>
                         Update the selected stock record.
                     </p>
+
                 </div>
+
 
                 <button
                     type="button"
@@ -1346,17 +1593,19 @@
                 method="POST"
                 class="stock-form"
                 id="edit-stock-form"
-            >
 
-                <input
-                    type="hidden"
-                    name="csrf_token"
-                    value="{{ csrf_token() }}"
-                >
+                {% if edit_item %}
+                    action="{{ url_for(
+                        'edit_stock',
+                        item_id=edit_item.id
+                    ) }}"
+                {% endif %}
+            >
 
                 <div class="form-grid">
 
                     <label>
+
                         <span>Item Code *</span>
 
                         <input
@@ -1367,11 +1616,15 @@
                             minlength="2"
                             maxlength="20"
                             pattern="[A-Za-z0-9_-]{2,20}"
+
+                            value="{% if edit_item %}{{ edit_item.item_code }}{% endif %}"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Item Name *</span>
 
                         <input
@@ -1381,11 +1634,15 @@
                             required
                             minlength="2"
                             maxlength="100"
+
+                            value="{% if edit_item %}{{ edit_item.item_name }}{% endif %}"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Category *</span>
 
                         <select
@@ -1393,24 +1650,32 @@
                             id="edit-category"
                             required
                         >
-                            <option value="">Select a category</option>
-                            <option value="Structural Timber">Structural Timber</option>
-                            <option value="Dressed Timber">Dressed Timber</option>
-                            <option value="Decking Timber">Decking Timber</option>
-                            <option value="Sheet Materials">Sheet Materials</option>
-                            <option value="Hardware and Fixings">Hardware and Fixings</option>
-                            <option value="Adhesives">Adhesives</option>
-                            <option value="Finishes and Coatings">Finishes and Coatings</option>
-                            <option value="Abrasives">Abrasives</option>
-                            <option value="Hand Tools">Hand Tools</option>
-                            <option value="Power Tools">Power Tools</option>
-                            <option value="Tool Accessories">Tool Accessories</option>
-                            <option value="Safety Equipment">Safety Equipment</option>
+
+                            <option value="">
+                                Select a category
+                            </option>
+
+                            {% for category in categories %}
+
+                                <option
+                                    value="{{ category }}"
+
+                                    {% if edit_item and edit_item.category == category %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ category }}
+                                </option>
+
+                            {% endfor %}
+
                         </select>
+
                     </label>
 
 
                     <label>
+
                         <span>Measurement Unit *</span>
 
                         <select
@@ -1418,35 +1683,50 @@
                             id="edit-unit"
                             required
                         >
-                            <option value="">Select a unit</option>
-                            <option value="lengths">Lengths</option>
-                            <option value="boards">Boards</option>
-                            <option value="sheets">Sheets</option>
-                            <option value="pieces">Pieces</option>
-                            <option value="packs">Packs</option>
-                            <option value="boxes">Boxes</option>
-                            <option value="units">Individual Units</option>
-                            <option value="litres">Litres</option>
-                            <option value="tubes">Tubes</option>
-                            <option value="rolls">Rolls</option>
-                            <option value="kilograms">Kilograms</option>
+
+                            <option value="">
+                                Select a unit
+                            </option>
+
+                            {% for unit in units %}
+
+                                <option
+                                    value="{{ unit }}"
+
+                                    {% if edit_item and edit_item.unit == unit %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ unit|title }}
+                                </option>
+
+                            {% endfor %}
+
                         </select>
+
                     </label>
 
 
                     <label class="full-width">
-                        <span>Size, Grade or Specification</span>
+
+                        <span>
+                            Size, Grade or Specification
+                        </span>
 
                         <input
                             type="text"
                             name="specification"
                             id="edit-specification"
                             maxlength="200"
+
+                            value="{% if edit_item %}{{ edit_item.specification }}{% endif %}"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Quantity *</span>
 
                         <input
@@ -1457,11 +1737,15 @@
                             min="0"
                             max="1000000"
                             step="1"
+
+                            value="{% if edit_item %}{{ edit_item.quantity }}{% endif %}"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Reorder Level *</span>
 
                         <input
@@ -1472,11 +1756,15 @@
                             min="0"
                             max="1000000"
                             step="1"
+
+                            value="{% if edit_item %}{{ edit_item.minimum_level }}{% endif %}"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Unit Cost in AUD</span>
 
                         <input
@@ -1486,11 +1774,15 @@
                             min="0"
                             max="1000000"
                             step="0.01"
+
+                            value="{% if edit_item %}{{ edit_item.unit_cost }}{% endif %}"
                         >
+
                     </label>
 
 
                     <label>
+
                         <span>Storage Location</span>
 
                         <input
@@ -1498,11 +1790,15 @@
                             name="location"
                             id="edit-location"
                             maxlength="100"
+
+                            value="{% if edit_item %}{{ edit_item.location }}{% endif %}"
                         >
+
                     </label>
 
 
                     <label class="full-width">
+
                         <span>Notes</span>
 
                         <textarea
@@ -1510,7 +1806,8 @@
                             id="edit-notes"
                             maxlength="500"
                             rows="4"
-                        ></textarea>
+                        >{% if edit_item %}{{ edit_item.notes }}{% endif %}</textarea>
+
                     </label>
 
                 </div>
@@ -1525,11 +1822,13 @@
                         Cancel
                     </button>
 
+
                     <button
                         type="submit"
                         class="primary-button"
                     >
                         <i class="fa-solid fa-floppy-disk"></i>
+
                         Save Changes
                     </button>
 
@@ -1550,10 +1849,14 @@
         class="modal"
         id="adjust-stock-modal"
         aria-hidden="true"
+
+        data-open-on-load="{% if adjust_item %}true{% else %}false{% endif %}"
+
         hidden
     >
 
         <div class="modal-background"></div>
+
 
         <section
             class="modal-content small-modal"
@@ -1565,14 +1868,30 @@
             <header class="modal-header">
 
                 <div>
+
                     <h2 id="adjust-stock-title">
                         Stock In or Stock Out
                     </h2>
 
                     <p id="adjust-item-description">
-                        Update the selected quantity.
+
+                        {% if adjust_item %}
+
+                            {{ adjust_item.item_name }}
+                            currently has
+                            {{ adjust_item.quantity }}
+                            {{ adjust_item.unit }}.
+
+                        {% else %}
+
+                            Update the selected quantity.
+
+                        {% endif %}
+
                     </p>
+
                 </div>
+
 
                 <button
                     type="button"
@@ -1589,21 +1908,25 @@
                 method="POST"
                 class="stock-form"
                 id="adjust-stock-form"
+
+                {% if adjust_item %}
+                    action="{{ url_for(
+                        'adjust_stock',
+                        item_id=adjust_item.id
+                    ) }}"
+                {% endif %}
             >
 
-                <input
-                    type="hidden"
-                    name="csrf_token"
-                    value="{{ csrf_token() }}"
-                >
-
                 <label>
+
                     <span>Adjustment Type *</span>
 
                     <select
-                        name="adjustment_type"
+                        name="movement"
+                        id="adjust-movement"
                         required
                     >
+
                         <option value="in">
                             Stock In
                         </option>
@@ -1611,11 +1934,14 @@
                         <option value="out">
                             Stock Out
                         </option>
+
                     </select>
+
                 </label>
 
 
                 <label>
+
                     <span>Quantity *</span>
 
                     <input
@@ -1627,10 +1953,12 @@
                         step="1"
                         value="1"
                     >
+
                 </label>
 
 
                 <label>
+
                     <span>Reason</span>
 
                     <textarea
@@ -1639,6 +1967,7 @@
                         rows="3"
                         placeholder="Example: New delivery or used for Job 104"
                     ></textarea>
+
                 </label>
 
 
@@ -1650,6 +1979,7 @@
                     >
                         Cancel
                     </button>
+
 
                     <button
                         type="submit"
@@ -1666,6 +1996,10 @@
 
     </div>
 
+
+    <!-- ==================================================
+         STOCK TRACKER JAVASCRIPT
+    =================================================== -->
 
     <script
         src="{{ url_for('static', filename='stock_tracker.js') }}"
