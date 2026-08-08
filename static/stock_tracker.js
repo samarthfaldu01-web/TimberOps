@@ -36,7 +36,6 @@ document.addEventListener("DOMContentLoaded", function () {
         "open-add-modal"
     );
 
-
     const editForm = document.getElementById(
         "edit-stock-form"
     );
@@ -47,16 +46,59 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // =====================================================
-    // SIDEBAR BUTTON
+    // REAL NAVIGATION LINKS
     // =====================================================
 
-    /*
-        The current CSS uses a permanently visible sidebar.
+    document.querySelectorAll(
+        ".sidebar-link"
+    ).forEach(function (link) {
 
-        This button is kept functional without damaging the
-        layout. On smaller screens it can temporarily hide
-        and restore the sidebar.
-    */
+        const title = link.getAttribute(
+            "title"
+        );
+
+
+        if (
+            title === "Calendar"
+            || title === "Job Scheduling"
+        ) {
+
+            link.addEventListener(
+                "click",
+                function (event) {
+
+                    event.preventDefault();
+
+                    window.location.href =
+                        "/job-scheduling";
+                }
+            );
+        }
+
+
+        if (
+            title === "Messages"
+            || title === "Customer Job Request"
+        ) {
+
+            link.addEventListener(
+                "click",
+                function (event) {
+
+                    event.preventDefault();
+
+                    window.location.href =
+                        "/job-request";
+                }
+            );
+        }
+
+    });
+
+
+    // =====================================================
+    // SIDEBAR BUTTON
+    // =====================================================
 
     if (
         sidebarToggle
@@ -89,7 +131,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     sidebar.style.transition =
                         "transform 0.25s ease";
                 }
-
             }
         );
     }
@@ -112,10 +153,12 @@ document.addEventListener("DOMContentLoaded", function () {
             "modal-open"
         );
 
+
         modal.setAttribute(
             "aria-hidden",
             "false"
         );
+
 
         body.classList.add(
             "modal-active"
@@ -131,7 +174,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
             window.setTimeout(
                 function () {
+
                     firstInput.focus();
+
                 },
                 50
             );
@@ -150,17 +195,20 @@ document.addEventListener("DOMContentLoaded", function () {
             "modal-open"
         );
 
+
         modal.setAttribute(
             "aria-hidden",
             "true"
         );
 
+
         modal.hidden = true;
 
 
-        const anyOpenModal = document.querySelector(
-            ".modal.modal-open"
-        );
+        const anyOpenModal =
+            document.querySelector(
+                ".modal.modal-open"
+            );
 
 
         if (!anyOpenModal) {
@@ -232,45 +280,54 @@ document.addEventListener("DOMContentLoaded", function () {
                         "edit-item-code"
                     );
 
+
                 const itemName =
                     document.getElementById(
                         "edit-item-name"
                     );
+
 
                 const category =
                     document.getElementById(
                         "edit-category"
                     );
 
+
                 const specification =
                     document.getElementById(
                         "edit-specification"
                     );
+
 
                 const quantity =
                     document.getElementById(
                         "edit-quantity"
                     );
 
+
                 const minimum =
                     document.getElementById(
                         "edit-minimum"
                     );
+
 
                 const unit =
                     document.getElementById(
                         "edit-unit"
                     );
 
+
                 const location =
                     document.getElementById(
                         "edit-location"
                     );
 
+
                 const unitCost =
                     document.getElementById(
                         "edit-unit-cost"
                     );
+
 
                 const notes =
                     document.getElementById(
@@ -283,62 +340,82 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
                 if (itemCode) {
+
                     itemCode.value =
-                        button.dataset.itemCode || "";
+                        button.dataset.itemCode
+                        || "";
                 }
 
 
                 if (itemName) {
+
                     itemName.value =
-                        button.dataset.itemName || "";
+                        button.dataset.itemName
+                        || "";
                 }
 
 
                 if (category) {
+
                     category.value =
-                        button.dataset.category || "";
+                        button.dataset.category
+                        || "";
                 }
 
 
                 if (specification) {
+
                     specification.value =
-                        button.dataset.specification || "";
+                        button.dataset.specification
+                        || "";
                 }
 
 
                 if (quantity) {
+
                     quantity.value =
-                        button.dataset.quantity || "0";
+                        button.dataset.quantity
+                        || "0";
                 }
 
 
                 if (minimum) {
+
                     minimum.value =
-                        button.dataset.minimum || "0";
+                        button.dataset.minimum
+                        || "0";
                 }
 
 
                 if (unit) {
+
                     unit.value =
-                        button.dataset.unit || "";
+                        button.dataset.unit
+                        || "";
                 }
 
 
                 if (location) {
+
                     location.value =
-                        button.dataset.location || "";
+                        button.dataset.location
+                        || "";
                 }
 
 
                 if (unitCost) {
+
                     unitCost.value =
-                        button.dataset.unitCost || "0";
+                        button.dataset.unitCost
+                        || "0";
                 }
 
 
                 if (notes) {
+
                     notes.value =
-                        button.dataset.notes || "";
+                        button.dataset.notes
+                        || "";
                 }
 
 
@@ -388,7 +465,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (movement) {
 
-                    movement.value = "in";
+                    movement.value =
+                        "in";
                 }
 
 
@@ -398,9 +476,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         button.dataset.itemName
                         || "Selected item";
 
+
                     const currentQuantity =
                         button.dataset.currentQuantity
                         || "0";
+
 
                     const unit =
                         button.dataset.unit
@@ -437,9 +517,10 @@ document.addEventListener("DOMContentLoaded", function () {
             "click",
             function () {
 
-                const modal = button.closest(
-                    ".modal"
-                );
+                const modal =
+                    button.closest(
+                        ".modal"
+                    );
 
 
                 closeModal(
@@ -462,9 +543,10 @@ document.addEventListener("DOMContentLoaded", function () {
             "click",
             function () {
 
-                const modal = background.closest(
-                    ".modal"
-                );
+                const modal =
+                    background.closest(
+                        ".modal"
+                    );
 
 
                 closeModal(
@@ -476,14 +558,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // =====================================================
-    // CLOSE MODAL WITH ESCAPE KEY
+    // ESCAPE KEY
     // =====================================================
 
     document.addEventListener(
         "keydown",
         function (event) {
 
-            if (event.key === "Escape") {
+            if (
+                event.key
+                === "Escape"
+            ) {
 
                 closeAllModals();
             }
@@ -494,17 +579,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // =====================================================
     // OPEN SERVER-REQUESTED MODALS
     // =====================================================
-
-    /*
-        Flask redirects back with:
-
-        ?panel=add
-        ?edit=ID
-        ?adjust=ID
-
-        The template converts this information into the
-        data-open-on-load attribute.
-    */
 
     document.querySelectorAll(
         ".modal[data-open-on-load='true']"
@@ -528,21 +602,24 @@ document.addEventListener("DOMContentLoaded", function () {
             "submit",
             function (event) {
 
-                const deleteButton = form.querySelector(
-                    ".delete-button"
-                );
+                const deleteButton =
+                    form.querySelector(
+                        ".delete-button"
+                    );
 
 
-                const itemName = deleteButton
-                    ? deleteButton.dataset.itemName
-                    : "this item";
+                const itemName =
+                    deleteButton
+                        ? deleteButton.dataset.itemName
+                        : "this item";
 
 
-                const confirmed = window.confirm(
-                    "Delete "
-                    + itemName
-                    + " permanently?"
-                );
+                const confirmed =
+                    window.confirm(
+                        "Delete "
+                        + itemName
+                        + " permanently?"
+                    );
 
 
                 if (!confirmed) {
@@ -555,7 +632,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // =====================================================
-    // FLASH MESSAGE CLOSE BUTTON
+    // FLASH MESSAGE CLOSE
     // =====================================================
 
     document.querySelectorAll(
@@ -566,9 +643,10 @@ document.addEventListener("DOMContentLoaded", function () {
             "click",
             function () {
 
-                const message = button.closest(
-                    ".flash-message"
-                );
+                const message =
+                    button.closest(
+                        ".flash-message"
+                    );
 
 
                 if (!message) {
@@ -595,12 +673,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // =====================================================
-    // UNFINISHED NAVIGATION LINKS
+    // UNFINISHED NAVIGATION
     // =====================================================
 
     document.querySelectorAll(
         ".coming-soon"
     ).forEach(function (button) {
+
+        const title =
+            button.getAttribute(
+                "title"
+            );
+
+
+        if (
+            title === "Messages"
+            || title === "Customer Job Request"
+            || title === "Calendar"
+            || title === "Job Scheduling"
+        ) {
+
+            return;
+        }
+
 
         button.addEventListener(
             "click",
@@ -626,20 +721,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // =====================================================
     // SUPPLIER SEARCH
     // =====================================================
-
-    /*
-        No JavaScript API request is needed here anymore.
-
-        The supplier form submits to /stock-tracker using
-        GET parameters.
-
-        The existing Flask stock_tracker() function receives:
-
-        supplier_item_id
-        supplier_suburb
-
-        and then calls search_google_suppliers().
-    */
 
     const supplierFormButton =
         document.getElementById(

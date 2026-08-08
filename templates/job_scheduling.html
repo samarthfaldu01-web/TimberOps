@@ -1,1334 +1,3831 @@
-# ==========================================================
-# JOB SCHEDULING OPTIONS
-# ==========================================================
+<!DOCTYPE html>
+<html lang="en">
 
-JOB_STATUSES = (
-    "Received",
-    "Scheduled",
-    "In Progress",
-    "Completed",
-    "Cancelled",
-)
+<head>
 
+    <meta charset="UTF-8">
 
-JOB_PRIORITIES = (
-    "Low",
-    "Normal",
-    "High",
-    "Urgent",
-)
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
+    <title>TimberOps | Job Scheduling</title>
 
-JOB_TYPES = (
-    "Custom Furniture",
-    "Cabinetry",
-    "Joinery",
-    "Decking",
-    "Timber Framing",
-    "Door Installation",
-    "Window Installation",
-    "Repairs and Maintenance",
-    "Fit-Out",
-    "Renovation",
-    "On-Site Installation",
-    "Other",
-)
 
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='homepage.css') }}"
+    >
 
-# ==========================================================
-# JOB SCHEDULING HELPERS
-# ==========================================================
 
-def get_job_or_404(job_id: int) -> sqlite3.Row:
-    """
-    Returns one job record or displays a 404 error.
-    """
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
 
-    job = get_db().execute(
-        """
-        SELECT *
-        FROM jobs
-        WHERE id = ?
-        """,
-        (job_id,),
-    ).fetchone()
 
-    if job is None:
-        abort(
-            404,
-            description="The selected job does not exist.",
-        )
+    <style>
 
-    return job
+        :root {
+            --page-background: #f7f3e8;
+            --card-background: #fffdf7;
 
+            --border: #d8cfb2;
 
-def valid_date_text(value: str) -> bool:
-    """
-    Checks that a string uses the YYYY-MM-DD date format.
-    """
+            --text: #26303d;
+            --muted: #6f7782;
 
-    try:
-        datetime.strptime(
-            value,
-            "%Y-%m-%d",
-        )
+            --green: #667b3f;
+            --dark-green: #46582a;
 
-        return True
+            --gold: #d9a45f;
 
-    except ValueError:
-        return False
+            --red: #a33b3b;
+            --red-background: #f6dddd;
 
-
-def valid_time_text(value: str) -> bool:
-    """
-    Checks that a string uses the HH:MM time format.
-    """
-
-    try:
-        datetime.strptime(
-            value,
-            "%H:%M",
-        )
-
-        return True
-
-    except ValueError:
-        return False
-
-
-def validate_job_form(
-    form: Any,
-) -> tuple[dict[str, Any], list[str]]:
-    """
-    Validates information submitted through the Add Job
-    and Edit Job forms.
-    """
-
-    errors: list[str] = []
-
-    job_number = form.get(
-        "job_number",
-        "",
-    ).strip().upper()
-
-    customer_name = form.get(
-        "customer_name",
-        "",
-    ).strip()
-
-    customer_phone = form.get(
-        "customer_phone",
-        "",
-    ).strip()
-
-    customer_email = form.get(
-        "customer_email",
-        "",
-    ).strip()
-
-    job_title = form.get(
-        "job_title",
-        "",
-    ).strip()
-
-    job_type = form.get(
-        "job_type",
-        "",
-    ).strip()
-
-    description = form.get(
-        "description",
-        "",
-    ).strip()
-
-    site_address = form.get(
-        "site_address",
-        "",
-    ).strip()
-
-    suburb = form.get(
-        "suburb",
-        "",
-    ).strip()
-
-    priority = form.get(
-        "priority",
-        "Normal",
-    ).strip()
-
-    status = form.get(
-        "status",
-        "Received",
-    ).strip()
-
-    received_date = form.get(
-        "received_date",
-        "",
-    ).strip()
-
-    scheduled_date = form.get(
-        "scheduled_date",
-        "",
-    ).strip()
-
-    start_time = form.get(
-        "start_time",
-        "",
-    ).strip()
-
-    end_time = form.get(
-        "end_time",
-        "",
-    ).strip()
-
-    assigned_to = form.get(
-        "assigned_to",
-        "",
-    ).strip()
-
-    notes = form.get(
-        "notes",
-        "",
-    ).strip()
-
-    try:
-        estimated_hours = round(
-            float(
-                form.get(
-                    "estimated_hours",
-                    "0",
-                )
-                or 0
-            ),
-            2,
-        )
-
-    except (TypeError, ValueError):
-        estimated_hours = 0
-
-        errors.append(
-            "Estimated hours must be a valid number.",
-        )
-
-    if not re.fullmatch(
-        r"[A-Z0-9_-]{2,20}",
-        job_number,
-    ):
-        errors.append(
-            "Job number must be 2-20 characters using "
-            "letters, numbers, hyphens or underscores.",
-        )
-
-    if not 2 <= len(customer_name) <= 100:
-        errors.append(
-            "Customer name must contain 2-100 characters.",
-        )
-
-    if not 2 <= len(job_title) <= 120:
-        errors.append(
-            "Job title must contain 2-120 characters.",
-        )
-
-    if job_type not in JOB_TYPES:
-        errors.append(
-            "Select a valid job type.",
-        )
-
-    if priority not in JOB_PRIORITIES:
-        errors.append(
-            "Select a valid job priority.",
-        )
-
-    if status not in JOB_STATUSES:
-        errors.append(
-            "Select a valid job status.",
-        )
-
-    if not received_date or not valid_date_text(
-        received_date,
-    ):
-        errors.append(
-            "Enter a valid received date.",
-        )
-
-    if scheduled_date and not valid_date_text(
-        scheduled_date,
-    ):
-        errors.append(
-            "Enter a valid scheduled date.",
-        )
-
-    if bool(start_time) != bool(end_time):
-        errors.append(
-            "Enter both a start time and an end time.",
-        )
-
-    if start_time and not valid_time_text(
-        start_time,
-    ):
-        errors.append(
-            "Enter a valid start time.",
-        )
-
-    if end_time and not valid_time_text(
-        end_time,
-    ):
-        errors.append(
-            "Enter a valid end time.",
-        )
-
-    if (
-        start_time
-        and end_time
-        and valid_time_text(start_time)
-        and valid_time_text(end_time)
-        and end_time <= start_time
-    ):
-        errors.append(
-            "The end time must be later than the start time.",
-        )
-
-    statuses_requiring_schedule = {
-        "Scheduled",
-        "In Progress",
-        "Completed",
-    }
-
-    if (
-        status in statuses_requiring_schedule
-        and not scheduled_date
-    ):
-        errors.append(
-            f"A scheduled date is required when the status is {status}.",
-        )
-
-    # Automatically marks a received job as scheduled when
-    # scheduling information has been entered.
-    if scheduled_date and status == "Received":
-        status = "Scheduled"
-
-    if estimated_hours < 0:
-        errors.append(
-            "Estimated hours cannot be negative.",
-        )
-
-    if estimated_hours > 1000:
-        errors.append(
-            "Estimated hours is too large.",
-        )
-
-    if len(customer_phone) > 30:
-        errors.append(
-            "Customer phone cannot exceed 30 characters.",
-        )
-
-    if len(customer_email) > 120:
-        errors.append(
-            "Customer email cannot exceed 120 characters.",
-        )
-
-    if len(description) > 1000:
-        errors.append(
-            "Job description cannot exceed 1000 characters.",
-        )
-
-    if len(site_address) > 180:
-        errors.append(
-            "Site address cannot exceed 180 characters.",
-        )
-
-    if len(suburb) > 80:
-        errors.append(
-            "Suburb cannot exceed 80 characters.",
-        )
-
-    if len(assigned_to) > 100:
-        errors.append(
-            "Assigned worker cannot exceed 100 characters.",
-        )
-
-    if len(notes) > 700:
-        errors.append(
-            "Job notes cannot exceed 700 characters.",
-        )
-
-    job_data = {
-        "job_number": job_number,
-        "customer_name": customer_name,
-        "customer_phone": customer_phone,
-        "customer_email": customer_email,
-        "job_title": job_title,
-        "job_type": job_type,
-        "description": description,
-        "site_address": site_address,
-        "suburb": suburb,
-        "priority": priority,
-        "status": status,
-        "received_date": received_date,
-        "scheduled_date": scheduled_date,
-        "start_time": start_time,
-        "end_time": end_time,
-        "estimated_hours": estimated_hours,
-        "assigned_to": assigned_to,
-        "notes": notes,
-    }
-
-    return job_data, errors
-
-
-def build_job_filters(
-    arguments: Any,
-) -> tuple[
-    str,
-    list[Any],
-    str,
-    str,
-    str,
-]:
-    """
-    Creates a safe SQL filtering section for job records.
-    """
-
-    search_text = arguments.get(
-        "q",
-        "",
-    ).strip()
-
-    selected_status = arguments.get(
-        "status",
-        "",
-    ).strip()
-
-    selected_priority = arguments.get(
-        "priority",
-        "",
-    ).strip()
-
-    where_clauses: list[str] = []
-    parameters: list[Any] = []
-
-    if search_text:
-        search_pattern = (
-            "%"
-            + search_text.lower()
-            + "%"
-        )
-
-        where_clauses.append(
-            """
-            (
-                LOWER(job_number) LIKE ?
-                OR LOWER(customer_name) LIKE ?
-                OR LOWER(job_title) LIKE ?
-                OR LOWER(job_type) LIKE ?
-                OR LOWER(suburb) LIKE ?
-                OR LOWER(assigned_to) LIKE ?
-            )
-            """
-        )
-
-        parameters.extend(
-            [search_pattern] * 6,
-        )
-
-    if selected_status in JOB_STATUSES:
-        where_clauses.append(
-            "status = ?",
-        )
-
-        parameters.append(
-            selected_status,
-        )
-
-    if selected_priority in JOB_PRIORITIES:
-        where_clauses.append(
-            "priority = ?",
-        )
-
-        parameters.append(
-            selected_priority,
-        )
-
-    where_sql = ""
-
-    if where_clauses:
-        where_sql = (
-            " WHERE "
-            + " AND ".join(
-                where_clauses,
-            )
-        )
-
-    return (
-        where_sql,
-        parameters,
-        search_text,
-        selected_status,
-        selected_priority,
-    )
-
-
-# ==========================================================
-# JOB SCHEDULING PAGE
-# ==========================================================
-
-@app.route("/job-scheduling")
-@login_required
-def job_scheduling() -> str:
-    """
-    Displays the monthly calendar, received-jobs queue,
-    upcoming jobs and complete job list.
-    """
-
-    database = get_db()
-
-    today = date.today()
-
-    selected_month = request.args.get(
-        "month",
-        today.month,
-        type=int,
-    )
-
-    selected_year = request.args.get(
-        "year",
-        today.year,
-        type=int,
-    )
-
-    if selected_month not in range(1, 13):
-        selected_month = today.month
-
-    if selected_year not in range(2000, 2101):
-        selected_year = today.year
-
-    (
-        where_sql,
-        filter_parameters,
-        search_text,
-        selected_status,
-        selected_priority,
-    ) = build_job_filters(
-        request.args,
-    )
-
-    month_start = date(
-        selected_year,
-        selected_month,
-        1,
-    )
-
-    previous_month_date = (
-        month_start
-        - timedelta(days=1)
-    )
-
-    next_month_date = (
-        month_start.replace(day=28)
-        + timedelta(days=4)
-    ).replace(day=1)
-
-    calendar_builder = calendar_module.Calendar(
-        firstweekday=0,
-    )
-
-    raw_calendar_weeks = calendar_builder.monthdatescalendar(
-        selected_year,
-        selected_month,
-    )
-
-    visible_start = raw_calendar_weeks[0][0]
-    visible_end = raw_calendar_weeks[-1][-1]
-
-    calendar_where_clauses: list[str] = [
-        "scheduled_date BETWEEN ? AND ?",
-    ]
-
-    calendar_parameters: list[Any] = [
-        visible_start.isoformat(),
-        visible_end.isoformat(),
-    ]
-
-    if where_sql:
-        filter_condition = where_sql.replace(
-            " WHERE ",
-            "",
-            1,
-        )
-
-        calendar_where_clauses.append(
-            filter_condition,
-        )
-
-        calendar_parameters.extend(
-            filter_parameters,
-        )
-
-    calendar_jobs = database.execute(
-        f"""
-        SELECT *
-        FROM jobs
-        WHERE {" AND ".join(calendar_where_clauses)}
-        ORDER BY
-            scheduled_date ASC,
-            start_time ASC,
-            priority DESC,
-            id ASC
-        """,
-        calendar_parameters,
-    ).fetchall()
-
-    jobs_by_date: dict[str, list[sqlite3.Row]] = {}
-
-    for job in calendar_jobs:
-        scheduled_date = job[
-            "scheduled_date"
-        ]
-
-        jobs_by_date.setdefault(
-            scheduled_date,
-            [],
-        ).append(
-            job,
-        )
-
-    calendar_weeks: list[list[dict[str, Any]]] = []
-
-    for week in raw_calendar_weeks:
-        calendar_week: list[dict[str, Any]] = []
-
-        for calendar_date in week:
-            date_text = calendar_date.isoformat()
-
-            calendar_week.append(
-                {
-                    "iso": date_text,
-                    "day_number": calendar_date.day,
-                    "in_month": (
-                        calendar_date.month
-                        == selected_month
-                    ),
-                    "is_today": (
-                        calendar_date
-                        == today
-                    ),
-                    "jobs": jobs_by_date.get(
-                        date_text,
-                        [],
-                    ),
-                },
-            )
-
-        calendar_weeks.append(
-            calendar_week,
-        )
-
-    all_filtered_jobs = database.execute(
-        f"""
-        SELECT *
-        FROM jobs
-        {where_sql}
-        ORDER BY
-            CASE
-                WHEN scheduled_date = '' THEN 1
-                ELSE 0
-            END,
-            scheduled_date ASC,
-            start_time ASC,
-            received_date DESC,
-            id DESC
-        LIMIT 100
-        """,
-        filter_parameters,
-    ).fetchall()
-
-    summary = database.execute(
-        """
-        SELECT
-            COUNT(*) AS total_jobs,
-
-            SUM(
-                CASE
-                    WHEN status = 'Received'
-                    THEN 1 ELSE 0
-                END
-            ) AS received_jobs,
-
-            SUM(
-                CASE
-                    WHEN status = 'Scheduled'
-                    THEN 1 ELSE 0
-                END
-            ) AS scheduled_jobs,
-
-            SUM(
-                CASE
-                    WHEN status = 'In Progress'
-                    THEN 1 ELSE 0
-                END
-            ) AS in_progress_jobs,
-
-            SUM(
-                CASE
-                    WHEN status = 'Completed'
-                    THEN 1 ELSE 0
-                END
-            ) AS completed_jobs,
-
-            SUM(
-                CASE
-                    WHEN scheduled_date = ?
-                    AND status NOT IN (
-                        'Completed',
-                        'Cancelled'
-                    )
-                    THEN 1 ELSE 0
-                END
-            ) AS jobs_today
-
-        FROM jobs
-        """,
-        (
-            today.isoformat(),
-        ),
-    ).fetchone()
-
-    unscheduled_jobs = database.execute(
-        """
-        SELECT *
-        FROM jobs
-
-        WHERE scheduled_date = ''
-        AND status NOT IN (
-            'Completed',
-            'Cancelled'
-        )
-
-        ORDER BY
-            CASE priority
-                WHEN 'Urgent' THEN 1
-                WHEN 'High' THEN 2
-                WHEN 'Normal' THEN 3
-                ELSE 4
-            END,
-            received_date ASC,
-            id ASC
-
-        LIMIT 8
-        """
-    ).fetchall()
-
-    upcoming_end = (
-        today
-        + timedelta(days=30)
-    ).isoformat()
-
-    upcoming_jobs = database.execute(
-        """
-        SELECT *
-        FROM jobs
-
-        WHERE scheduled_date BETWEEN ? AND ?
-        AND status NOT IN (
-            'Completed',
-            'Cancelled'
-        )
-
-        ORDER BY
-            scheduled_date ASC,
-            start_time ASC
-
-        LIMIT 8
-        """,
-        (
-            today.isoformat(),
-            upcoming_end,
-        ),
-    ).fetchall()
-
-    show_add_form = (
-        request.args.get(
-            "panel",
-            "",
-        )
-        == "add"
-    )
-
-    edit_job_record = None
-    schedule_job_record = None
-
-    edit_job_id = request.args.get(
-        "edit",
-        type=int,
-    )
-
-    schedule_job_id = request.args.get(
-        "schedule",
-        type=int,
-    )
-
-    if edit_job_id:
-        edit_job_record = get_job_or_404(
-            edit_job_id,
-        )
-
-    if schedule_job_id:
-        schedule_job_record = get_job_or_404(
-            schedule_job_id,
-        )
-
-    return render_template(
-        "job_scheduling.html",
-
-        calendar_weeks=calendar_weeks,
-        month_name=calendar_module.month_name[
-            selected_month
-        ],
-
-        selected_month=selected_month,
-        selected_year=selected_year,
-
-        previous_month=previous_month_date.month,
-        previous_year=previous_month_date.year,
-
-        next_month=next_month_date.month,
-        next_year=next_month_date.year,
-
-        today=today,
-        today_iso=today.isoformat(),
-
-        jobs=all_filtered_jobs,
-        unscheduled_jobs=unscheduled_jobs,
-        upcoming_jobs=upcoming_jobs,
-        summary=summary,
-
-        job_statuses=JOB_STATUSES,
-        job_priorities=JOB_PRIORITIES,
-        job_types=JOB_TYPES,
-
-        search_text=search_text,
-        selected_status=selected_status,
-        selected_priority=selected_priority,
-
-        show_add_form=show_add_form,
-        edit_job=edit_job_record,
-        schedule_job=schedule_job_record,
-    )
-
-
-# ==========================================================
-# ADD JOB
-# ==========================================================
-
-@app.route(
-    "/job-scheduling/add",
-    methods=["POST"],
-)
-@login_required
-def add_job() -> Response:
-    """
-    Creates a new received or scheduled job.
-    """
-
-    validate_csrf()
-
-    job_data, errors = validate_job_form(
-        request.form,
-    )
-
-    if errors:
-        for error in errors:
-            flash(
-                error,
-                "error",
-            )
-
-        return redirect(
-            url_for(
-                "job_scheduling",
-                panel="add",
-            )
-            + "#job-form-panel"
-        )
-
-    database = get_db()
-    timestamp = current_time()
-
-    try:
-        database.execute(
-            """
-            INSERT INTO jobs (
-                job_number,
-                customer_name,
-                customer_phone,
-                customer_email,
-                job_title,
-                job_type,
-                description,
-                site_address,
-                suburb,
-                priority,
-                status,
-                received_date,
-                scheduled_date,
-                start_time,
-                end_time,
-                estimated_hours,
-                assigned_to,
-                notes,
-                created_at,
-                updated_at
-            )
-            VALUES (
-                ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?,
-                ?, ?
-            )
-            """,
-            (
-                job_data["job_number"],
-                job_data["customer_name"],
-                job_data["customer_phone"],
-                job_data["customer_email"],
-                job_data["job_title"],
-                job_data["job_type"],
-                job_data["description"],
-                job_data["site_address"],
-                job_data["suburb"],
-                job_data["priority"],
-                job_data["status"],
-                job_data["received_date"],
-                job_data["scheduled_date"],
-                job_data["start_time"],
-                job_data["end_time"],
-                job_data["estimated_hours"],
-                job_data["assigned_to"],
-                job_data["notes"],
-                timestamp,
-                timestamp,
-            ),
-        )
-
-        database.commit()
-
-    except sqlite3.IntegrityError:
-        database.rollback()
-
-        flash(
-            "That job number already exists. "
-            "Enter a unique job number.",
-            "error",
-        )
-
-        return redirect(
-            url_for(
-                "job_scheduling",
-                panel="add",
-            )
-            + "#job-form-panel"
-        )
-
-    flash(
-        f"Job {job_data['job_number']} was added successfully.",
-        "success",
-    )
-
-    return redirect(
-        url_for("job_scheduling"),
-    )
-
-
-# ==========================================================
-# EDIT JOB
-# ==========================================================
-
-@app.route(
-    "/job-scheduling/<int:job_id>/edit",
-    methods=["POST"],
-)
-@login_required
-def edit_job(job_id: int) -> Response:
-    """
-    Updates an existing job.
-    """
-
-    validate_csrf()
-
-    get_job_or_404(
-        job_id,
-    )
-
-    job_data, errors = validate_job_form(
-        request.form,
-    )
-
-    if errors:
-        for error in errors:
-            flash(
-                error,
-                "error",
-            )
-
-        return redirect(
-            url_for(
-                "job_scheduling",
-                edit=job_id,
-            )
-            + "#job-form-panel"
-        )
-
-    database = get_db()
-
-    try:
-        database.execute(
-            """
-            UPDATE jobs
-
-            SET
-                job_number = ?,
-                customer_name = ?,
-                customer_phone = ?,
-                customer_email = ?,
-                job_title = ?,
-                job_type = ?,
-                description = ?,
-                site_address = ?,
-                suburb = ?,
-                priority = ?,
-                status = ?,
-                received_date = ?,
-                scheduled_date = ?,
-                start_time = ?,
-                end_time = ?,
-                estimated_hours = ?,
-                assigned_to = ?,
-                notes = ?,
-                updated_at = ?
-
-            WHERE id = ?
-            """,
-            (
-                job_data["job_number"],
-                job_data["customer_name"],
-                job_data["customer_phone"],
-                job_data["customer_email"],
-                job_data["job_title"],
-                job_data["job_type"],
-                job_data["description"],
-                job_data["site_address"],
-                job_data["suburb"],
-                job_data["priority"],
-                job_data["status"],
-                job_data["received_date"],
-                job_data["scheduled_date"],
-                job_data["start_time"],
-                job_data["end_time"],
-                job_data["estimated_hours"],
-                job_data["assigned_to"],
-                job_data["notes"],
-                current_time(),
-                job_id,
-            ),
-        )
-
-        database.commit()
-
-    except sqlite3.IntegrityError:
-        database.rollback()
-
-        flash(
-            "That job number is already being used.",
-            "error",
-        )
-
-        return redirect(
-            url_for(
-                "job_scheduling",
-                edit=job_id,
-            )
-            + "#job-form-panel"
-        )
-
-    flash(
-        f"Job {job_data['job_number']} was updated.",
-        "success",
-    )
-
-    return redirect(
-        url_for("job_scheduling"),
-    )
-
-
-# ==========================================================
-# SCHEDULE A RECEIVED JOB
-# ==========================================================
-
-@app.route(
-    "/job-scheduling/<int:job_id>/schedule",
-    methods=["POST"],
-)
-@login_required
-def schedule_existing_job(
-    job_id: int,
-) -> Response:
-    """
-    Assigns a date, time and worker to a received job.
-    """
-
-    validate_csrf()
-
-    job = get_job_or_404(
-        job_id,
-    )
-
-    scheduled_date = request.form.get(
-        "scheduled_date",
-        "",
-    ).strip()
-
-    start_time = request.form.get(
-        "start_time",
-        "",
-    ).strip()
-
-    end_time = request.form.get(
-        "end_time",
-        "",
-    ).strip()
-
-    assigned_to = request.form.get(
-        "assigned_to",
-        "",
-    ).strip()
-
-    errors: list[str] = []
-
-    if not scheduled_date or not valid_date_text(
-        scheduled_date,
-    ):
-        errors.append(
-            "Enter a valid scheduled date.",
-        )
-
-    if bool(start_time) != bool(end_time):
-        errors.append(
-            "Enter both a start time and end time.",
-        )
-
-    if start_time and not valid_time_text(
-        start_time,
-    ):
-        errors.append(
-            "Enter a valid start time.",
-        )
-
-    if end_time and not valid_time_text(
-        end_time,
-    ):
-        errors.append(
-            "Enter a valid end time.",
-        )
-
-    if (
-        start_time
-        and end_time
-        and valid_time_text(start_time)
-        and valid_time_text(end_time)
-        and end_time <= start_time
-    ):
-        errors.append(
-            "The end time must be later than the start time.",
-        )
-
-    if len(assigned_to) > 100:
-        errors.append(
-            "Assigned worker cannot exceed 100 characters.",
-        )
-
-    if errors:
-        for error in errors:
-            flash(
-                error,
-                "error",
-            )
-
-        return redirect(
-            url_for(
-                "job_scheduling",
-                schedule=job_id,
-            )
-            + "#job-form-panel"
-        )
-
-    get_db().execute(
-        """
-        UPDATE jobs
-
-        SET
-            scheduled_date = ?,
-            start_time = ?,
-            end_time = ?,
-            assigned_to = ?,
-            status = 'Scheduled',
-            updated_at = ?
-
-        WHERE id = ?
-        """,
-        (
-            scheduled_date,
-            start_time,
-            end_time,
-            assigned_to,
-            current_time(),
-            job_id,
-        ),
-    )
-
-    get_db().commit()
-
-    flash(
-        f"{job['job_number']} was added to the schedule.",
-        "success",
-    )
-
-    return redirect(
-        url_for(
-            "job_scheduling",
-            month=int(
-                scheduled_date[5:7]
-            ),
-            year=int(
-                scheduled_date[0:4]
-            ),
-        ),
-    )
-
-
-# ==========================================================
-# UPDATE JOB STATUS
-# ==========================================================
-
-@app.route(
-    "/job-scheduling/<int:job_id>/status",
-    methods=["POST"],
-)
-@login_required
-def update_job_status(
-    job_id: int,
-) -> Response:
-    """
-    Changes the progress status of a job.
-    """
-
-    validate_csrf()
-
-    job = get_job_or_404(
-        job_id,
-    )
-
-    new_status = request.form.get(
-        "status",
-        "",
-    ).strip()
-
-    if new_status not in JOB_STATUSES:
-        flash(
-            "Select a valid job status.",
-            "error",
-        )
-
-        return redirect(
-            url_for("job_scheduling"),
-        )
-
-    if (
-        new_status in {
-            "Scheduled",
-            "In Progress",
-            "Completed",
+            --amber: #946000;
+            --amber-background: #fff0c9;
         }
-        and not job["scheduled_date"]
-    ):
-        flash(
-            "Schedule the job before changing it to this status.",
-            "error",
-        )
-
-        return redirect(
-            url_for(
-                "job_scheduling",
-                schedule=job_id,
-            )
-            + "#job-form-panel"
-        )
-
-    get_db().execute(
-        """
-        UPDATE jobs
-
-        SET
-            status = ?,
-            updated_at = ?
-
-        WHERE id = ?
-        """,
-        (
-            new_status,
-            current_time(),
-            job_id,
-        ),
-    )
-
-    get_db().commit()
-
-    flash(
-        f"{job['job_number']} is now {new_status}.",
-        "success",
-    )
-
-    return redirect(
-        url_for("job_scheduling"),
-    )
 
 
-# ==========================================================
-# DELETE JOB
-# ==========================================================
+        body {
+            color: var(--text);
 
-@app.route(
-    "/job-scheduling/<int:job_id>/delete",
-    methods=["POST"],
-)
-@login_required
-def delete_job(
-    job_id: int,
-) -> Response:
-    """
-    Permanently removes a job record.
-    """
+            background-color:
+                var(--page-background);
 
-    validate_csrf()
+            overflow-x: hidden;
+        }
 
-    job = get_job_or_404(
-        job_id,
-    )
 
-    get_db().execute(
-        """
-        DELETE FROM jobs
-        WHERE id = ?
-        """,
-        (job_id,),
-    )
+        .content {
+            padding:
+                34px 42px 70px;
+        }
 
-    get_db().commit()
 
-    flash(
-        f"Job {job['job_number']} was deleted.",
-        "success",
-    )
+        /* ==================================================
+           PAGE HEADER
+        =================================================== */
 
-    return redirect(
-        url_for("job_scheduling"),
-    )
+        .page-head {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: flex-start;
+
+            gap: 24px;
+
+            margin-bottom: 24px;
+        }
+
+
+        .page-head h1 {
+            margin:
+                2px 0 7px;
+
+            font-size: 42px;
+        }
+
+
+        .page-head p,
+        .panel p {
+            color: var(--muted);
+
+            line-height: 1.45;
+        }
+
+
+        .eyebrow {
+            color: #7a6637;
+
+            font-size: 12px;
+            font-weight: 700;
+
+            letter-spacing: 0.12em;
+
+            text-transform: uppercase;
+        }
+
+
+        .head-actions {
+            display: flex;
+
+            gap: 10px;
+
+            flex-wrap: wrap;
+        }
+
+
+        .btn,
+        .request-actions button,
+        .schedule-btn,
+        .today-btn {
+            min-height: 43px;
+
+            display: inline-flex;
+
+            justify-content: center;
+            align-items: center;
+
+            gap: 8px;
+
+            padding:
+                9px 14px;
+
+            border-radius: 8px;
+
+            font-weight: 700;
+
+            text-decoration: none;
+
+            cursor: pointer;
+        }
+
+
+        .btn-primary,
+        .accept-btn,
+        .schedule-btn {
+            color: #ffffff;
+
+            background-color:
+                var(--green);
+
+            border:
+                1px solid
+                var(--green);
+        }
+
+
+        .btn-primary:hover,
+        .accept-btn:hover,
+        .schedule-btn:hover {
+            background-color:
+                var(--dark-green);
+        }
+
+
+        .btn-secondary,
+        .today-btn {
+            color: #58634c;
+
+            background-color: #f0ead8;
+
+            border:
+                1px solid
+                var(--border);
+        }
+
+
+        .api-pill {
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            padding:
+                9px 12px;
+
+            color: #74623b;
+
+            background-color: #f5ead0;
+
+            border:
+                1px solid #dec99b;
+
+            border-radius: 8px;
+
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+
+        /* ==================================================
+           FLASH MESSAGES
+        =================================================== */
+
+        .flash-container {
+            margin-bottom: 18px;
+        }
+
+
+        .flash-message {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: center;
+
+            padding:
+                13px 15px;
+
+            margin-bottom: 9px;
+
+            border-radius: 8px;
+        }
+
+
+        .flash-message.success {
+            color: #315524;
+
+            background-color: #e1efd9;
+
+            border:
+                1px solid #b8d5a9;
+        }
+
+
+        .flash-message.error {
+            color: #852b2b;
+
+            background-color:
+                var(--red-background);
+
+            border:
+                1px solid #e3b6b6;
+        }
+
+
+        .close-flash {
+            border: none;
+
+            color: inherit;
+
+            background: none;
+
+            font-size: 22px;
+
+            cursor: pointer;
+        }
+
+
+        /* ==================================================
+           SUMMARY
+        =================================================== */
+
+        .summary-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    6,
+                    minmax(0, 1fr)
+                );
+
+            gap: 12px;
+
+            margin-bottom: 24px;
+        }
+
+
+        .summary-card {
+            min-height: 104px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            padding: 16px;
+
+            background-color:
+                var(--card-background);
+
+            border:
+                1px solid #ddd1af;
+
+            border-radius: 13px;
+        }
+
+
+        .summary-icon {
+            width: 44px;
+            height: 44px;
+
+            display: grid;
+
+            place-items: center;
+
+            flex-shrink: 0;
+
+            color:
+                var(--green);
+
+            background-color:
+                #e5ecd8;
+
+            border-radius: 10px;
+        }
+
+
+        .summary-card span {
+            display: block;
+
+            color:
+                var(--muted);
+
+            font-size: 12px;
+        }
+
+
+        .summary-card strong {
+            font-size: 25px;
+        }
+
+
+        .summary-card.warning .summary-icon {
+            color:
+                var(--amber);
+
+            background-color:
+                var(--amber-background);
+        }
+
+
+        .summary-card.success .summary-icon {
+            color: #3b6b33;
+
+            background-color:
+                #e1efd9;
+        }
+
+
+        /* ==================================================
+           GENERAL PANELS
+        =================================================== */
+
+        .panel {
+            margin-bottom: 24px;
+
+            padding: 22px;
+
+            background-color:
+                var(--card-background);
+
+            border:
+                1px solid #ddd1af;
+
+            border-radius: 15px;
+
+            box-shadow:
+                0 7px 18px
+                rgba(
+                    70,
+                    55,
+                    25,
+                    0.05
+                );
+        }
+
+
+        .panel-head {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: flex-start;
+
+            gap: 16px;
+
+            margin-bottom: 18px;
+        }
+
+
+        .panel-head h2,
+        .calendar-toolbar h2 {
+            margin:
+                2px 0 4px;
+
+            font-size: 26px;
+        }
+
+
+        .count-pill {
+            padding:
+                5px 9px;
+
+            color:
+                var(--dark-green);
+
+            background-color:
+                #e5ecd8;
+
+            border-radius: 999px;
+
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+
+        .workspace {
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, 1.4fr)
+                minmax(300px, 0.75fr);
+
+            gap: 22px;
+
+            align-items: start;
+        }
+
+
+        /* ==================================================
+           REQUEST CARDS
+        =================================================== */
+
+        .request-list,
+        .accepted-list {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 11px;
+        }
+
+
+        .request-card,
+        .accepted-card {
+            padding: 16px;
+
+            background-color:
+                #faf7ed;
+
+            border:
+                1px solid #e7dfc9;
+
+            border-radius: 11px;
+        }
+
+
+        .request-card {
+            border-left:
+                4px solid #9e936e;
+        }
+
+
+        .request-card.urgent {
+            border-left-color:
+                var(--red);
+        }
+
+
+        .request-card.high {
+            border-left-color:
+                #b77b2b;
+        }
+
+
+        .card-top {
+            display: flex;
+
+            justify-content: space-between;
+
+            gap: 12px;
+        }
+
+
+        .reference {
+            display: block;
+
+            margin-bottom: 2px;
+
+            color: #806a38;
+
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+
+        .card-top h3,
+        .accepted-card h3 {
+            font-size: 19px;
+        }
+
+
+        .priority {
+            padding:
+                4px 8px;
+
+            color: #5f674f;
+
+            background-color:
+                #e8eadf;
+
+            border-radius: 999px;
+
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+
+        .priority.Urgent {
+            color:
+                var(--red);
+
+            background-color:
+                var(--red-background);
+        }
+
+
+        .priority.High {
+            color: #875a18;
+
+            background-color:
+                #f7e6c2;
+        }
+
+
+        .meta {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+
+            gap:
+                7px 12px;
+
+            margin:
+                12px 0 10px;
+        }
+
+
+        .meta span {
+            display: flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            color: #697381;
+
+            font-size: 12px;
+        }
+
+
+        .meta i {
+            width: 13px;
+
+            color: #738553;
+        }
+
+
+        .desc {
+            color: #515b66;
+
+            line-height: 1.45;
+        }
+
+
+        .request-details {
+            margin-top: 10px;
+
+            padding-top: 9px;
+
+            border-top:
+                1px solid #e7dfc9;
+        }
+
+
+        .request-details summary {
+            color:
+                var(--dark-green);
+
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+
+        .detail-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+
+            gap: 8px;
+
+            margin-top: 10px;
+        }
+
+
+        .detail-grid div,
+        .customer-note {
+            padding: 9px;
+
+            background-color:
+                #ffffff;
+
+            border:
+                1px solid #ece5d2;
+
+            border-radius: 7px;
+        }
+
+
+        .detail-grid span,
+        .customer-note span {
+            display: block;
+
+            margin-bottom: 2px;
+
+            color:
+                var(--muted);
+
+            font-size: 10px;
+        }
+
+
+        .detail-grid strong,
+        .customer-note p {
+            font-size: 12px;
+
+            line-height: 1.35;
+        }
+
+
+        .customer-note {
+            margin-top: 8px;
+        }
+
+
+        .request-actions {
+            display: flex;
+
+            gap: 8px;
+
+            margin-top: 12px;
+        }
+
+
+        .request-actions form {
+            flex: 1;
+        }
+
+
+        .request-actions button {
+            width: 100%;
+
+            border: none;
+        }
+
+
+        .decline-btn {
+            color:
+                var(--red);
+
+            background-color:
+                var(--red-background);
+        }
+
+
+        .accepted-card p {
+            margin:
+                8px 0 12px;
+
+            color:
+                var(--muted);
+
+            font-size: 13px;
+        }
+
+
+        .schedule-btn {
+            width: 100%;
+        }
+
+
+        .empty {
+            min-height: 145px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
+            align-items: center;
+
+            gap: 6px;
+
+            padding: 20px;
+
+            color:
+                var(--muted);
+
+            background-color:
+                #faf7ee;
+
+            border:
+                2px dashed #ddd2b5;
+
+            border-radius: 11px;
+
+            text-align: center;
+        }
+
+
+        .empty i {
+            color: #7a895e;
+
+            font-size: 28px;
+        }
+
+
+        .empty strong {
+            color: #4d5747;
+        }
+
+
+        /* ==================================================
+           CALENDAR
+        =================================================== */
+
+        .calendar-toolbar {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: flex-start;
+
+            gap: 18px;
+
+            margin-bottom: 16px;
+        }
+
+
+        .calendar-nav {
+            display: flex;
+
+            align-items: center;
+
+            gap: 7px;
+        }
+
+
+        .nav-square {
+            width: 40px;
+            height: 40px;
+
+            display: grid;
+
+            place-items: center;
+
+            color:
+                var(--dark-green);
+
+            background-color:
+                #f0ead8;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 8px;
+
+            text-decoration: none;
+        }
+
+
+        .weekdays,
+        .calendar-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    7,
+                    minmax(0, 1fr)
+                );
+        }
+
+
+        .weekdays {
+            background-color:
+                #ece4cd;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-bottom: none;
+
+            border-radius:
+                9px 9px 0 0;
+        }
+
+
+        .weekdays span {
+            padding: 8px;
+
+            color: #5e654f;
+
+            font-size: 12px;
+            font-weight: 700;
+
+            text-align: center;
+        }
+
+
+        .calendar-grid {
+            border-top:
+                1px solid
+                var(--border);
+
+            border-left:
+                1px solid
+                var(--border);
+        }
+
+
+        .day {
+            min-width: 0;
+
+            min-height: 138px;
+
+            padding: 7px;
+
+            background-color:
+                #fffef9;
+
+            border-right:
+                1px solid
+                var(--border);
+
+            border-bottom:
+                1px solid
+                var(--border);
+        }
+
+
+        .day.out {
+            background-color:
+                #f5f0e4;
+        }
+
+
+        .day.today {
+            box-shadow:
+                inset 0 0 0 2px
+                var(--gold);
+        }
+
+
+        .day-head {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: center;
+
+            margin-bottom: 7px;
+        }
+
+
+        .day-num {
+            width: 27px;
+            height: 27px;
+
+            display: grid;
+
+            place-items: center;
+
+            border-radius: 50%;
+
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+
+        .today .day-num {
+            color: #ffffff;
+
+            background-color:
+                var(--gold);
+        }
+
+
+        .day-add {
+            width: 27px;
+            height: 27px;
+
+            border: none;
+
+            color:
+                var(--green);
+
+            background-color:
+                #e5ecd8;
+
+            border-radius: 6px;
+
+            cursor: pointer;
+        }
+
+
+        .day-add:disabled {
+            opacity: 0.3;
+
+            cursor: not-allowed;
+        }
+
+
+        .events {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 4px;
+        }
+
+
+        .event {
+            width: 100%;
+
+            padding:
+                5px 6px;
+
+            overflow: hidden;
+
+            color: #3d522a;
+
+            background-color:
+                #e5ecd8;
+
+            border:
+                1px solid #cbd6b9;
+
+            border-radius: 6px;
+
+            text-align: left;
+
+            cursor: pointer;
+        }
+
+
+        .event span {
+            display: block;
+
+            overflow: hidden;
+
+            white-space: nowrap;
+
+            text-overflow: ellipsis;
+        }
+
+
+        .event-time {
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+
+        .event-title {
+            font-size: 11px;
+        }
+
+
+        .event.In-Progress {
+            color: #7b5414;
+
+            background-color:
+                #f8e9c7;
+
+            border-color:
+                #e1c98d;
+        }
+
+
+        .event.Completed {
+            color: #42663a;
+
+            background-color:
+                #e2efdd;
+        }
+
+
+        /* ==================================================
+           JOB TABLE
+        =================================================== */
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+
+        .jobs-table {
+            width: 100%;
+
+            min-width: 1080px;
+
+            border-collapse: collapse;
+        }
+
+
+        .jobs-table th,
+        .jobs-table td {
+            padding:
+                12px 10px;
+
+            text-align: left;
+            vertical-align: middle;
+
+            border-bottom:
+                1px solid #e7dfc9;
+        }
+
+
+        .jobs-table th {
+            color: #535e49;
+
+            background-color:
+                #f1ead7;
+
+            font-size: 12px;
+        }
+
+
+        .jobs-table td {
+            font-size: 12px;
+        }
+
+
+        .jobs-table td strong,
+        .jobs-table td span {
+            display: block;
+        }
+
+
+        .jobs-table td span {
+            margin-top: 2px;
+
+            color:
+                var(--muted);
+        }
+
+
+        .status-pill,
+        .sync-pill {
+            width: max-content;
+
+            display: inline-flex !important;
+
+            padding:
+                5px 8px;
+
+            border-radius: 999px;
+
+            font-size: 10px !important;
+            font-weight: 700;
+        }
+
+
+        .status-pill {
+            color: #536346 !important;
+
+            background-color:
+                #e8ecdf;
+        }
+
+
+        .status-pill.Completed {
+            color: #3c6934 !important;
+
+            background-color:
+                #e1efd9;
+        }
+
+
+        .status-pill.Cancelled {
+            color:
+                var(--red) !important;
+
+            background-color:
+                var(--red-background);
+        }
+
+
+        .sync-pill {
+            color: #796a43 !important;
+
+            background-color:
+                #f4ecd7;
+        }
+
+
+        .job-actions,
+        .status-form {
+            display: flex;
+
+            align-items: center;
+
+            gap: 5px;
+        }
+
+
+        .icon-btn,
+        .save-btn {
+            width: 34px;
+            height: 34px;
+
+            border: none;
+
+            color:
+                var(--dark-green);
+
+            background-color:
+                #e5ecd8;
+
+            border-radius: 6px;
+
+            cursor: pointer;
+        }
+
+
+        .status-form select {
+            height: 34px;
+
+            max-width: 132px;
+
+            background-color:
+                #ffffff;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 6px;
+        }
+
+
+        /* ==================================================
+           SCHEDULE MODAL
+        =================================================== */
+
+        .modal[hidden] {
+            display: none !important;
+        }
+
+
+        .modal {
+            position: fixed;
+
+            inset: 0;
+
+            display: none;
+
+            justify-content: center;
+            align-items: center;
+
+            padding: 22px;
+
+            z-index: 5000;
+        }
+
+
+        .modal.open {
+            display: flex;
+        }
+
+
+        .modal-bg {
+            position: absolute;
+
+            inset: 0;
+
+            background-color:
+                rgba(
+                    25,
+                    31,
+                    19,
+                    0.60
+                );
+        }
+
+
+        .modal-card {
+            position: relative;
+
+            width: 700px;
+            max-width: 100%;
+
+            max-height:
+                calc(
+                    100vh - 44px
+                );
+
+            overflow-y: auto;
+
+            background-color:
+                var(--card-background);
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 15px;
+
+            box-shadow:
+                0 22px 55px
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.25
+                );
+
+            z-index: 1;
+        }
+
+
+        .modal-head {
+            display: flex;
+
+            justify-content: space-between;
+
+            gap: 15px;
+
+            padding:
+                20px 22px;
+
+            border-bottom:
+                1px solid #e7dfc9;
+        }
+
+
+        .modal-head h2 {
+            font-size: 25px;
+        }
+
+
+        .modal-head p {
+            color:
+                var(--muted);
+        }
+
+
+        .modal-close {
+            border: none;
+
+            color: #737b84;
+
+            background: none;
+
+            font-size: 29px;
+
+            cursor: pointer;
+        }
+
+
+        .schedule-form {
+            padding:
+                21px 22px;
+        }
+
+
+        .form-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+
+            gap: 13px;
+        }
+
+
+        .schedule-form label {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 5px;
+        }
+
+
+        .schedule-form > label {
+            margin-bottom: 13px;
+        }
+
+
+        .schedule-form label span {
+            color: #4f5946;
+
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+
+        .schedule-form input,
+        .schedule-form select,
+        .schedule-form textarea {
+            width: 100%;
+
+            padding:
+                9px 10px;
+
+            background-color:
+                #ffffff;
+
+            border:
+                1px solid #d6ccb0;
+
+            border-radius: 7px;
+        }
+
+
+        .schedule-form input,
+        .schedule-form select {
+            min-height: 42px;
+        }
+
+
+        .full {
+            grid-column:
+                1 / -1;
+        }
+
+
+        .google-note {
+            display: flex;
+
+            gap: 10px;
+
+            margin-top: 15px;
+
+            padding: 11px;
+
+            color: #685d42;
+
+            background-color:
+                #f6edd7;
+
+            border:
+                1px solid #dfcca2;
+
+            border-radius: 8px;
+
+            font-size: 12px;
+
+            line-height: 1.35;
+        }
+
+
+        .modal-footer {
+            display: flex;
+
+            justify-content: flex-end;
+
+            gap: 9px;
+
+            margin-top: 18px;
+
+            padding-top: 16px;
+
+            border-top:
+                1px solid #e7dfc9;
+        }
+
+
+        /* ==================================================
+           RESPONSIVE
+        =================================================== */
+
+        @media (
+            max-width: 1400px
+        ) {
+
+            .summary-grid {
+                grid-template-columns:
+                    repeat(
+                        3,
+                        1fr
+                    );
+            }
+
+
+            .workspace {
+                grid-template-columns:
+                    1fr;
+            }
+
+
+            .accepted-list {
+                display: grid;
+
+                grid-template-columns:
+                    repeat(
+                        2,
+                        1fr
+                    );
+            }
+        }
+
+
+        @media (
+            max-width: 1000px
+        ) {
+
+            .calendar-panel {
+                overflow-x: auto;
+            }
+
+
+            .weekdays,
+            .calendar-grid {
+                min-width: 900px;
+            }
+
+
+            .page-head,
+            .calendar-toolbar {
+                flex-direction: column;
+            }
+        }
+
+
+        @media (
+            max-width: 760px
+        ) {
+
+            .content {
+                padding:
+                    26px 18px 50px;
+            }
+
+
+            .summary-grid {
+                grid-template-columns:
+                    repeat(
+                        2,
+                        1fr
+                    );
+            }
+
+
+            .accepted-list,
+            .meta,
+            .detail-grid,
+            .form-grid {
+                grid-template-columns:
+                    1fr;
+            }
+
+
+            .full {
+                grid-column: auto;
+            }
+
+
+            .request-actions {
+                flex-direction: column;
+            }
+        }
+
+
+        @media (
+            max-width: 520px
+        ) {
+
+            .summary-grid {
+                grid-template-columns:
+                    1fr;
+            }
+
+
+            .head-actions,
+            .modal-footer {
+                flex-direction: column;
+            }
+
+
+            .head-actions > * {
+                width: 100%;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- ==================================================
+         SIDEBAR
+    =================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="logo-box">
+
+            <img
+                src="{{ url_for('static', filename='images/transparent-logo.png') }}"
+                alt="TimberOps Logo"
+                class="sidebar-logo"
+            >
+
+        </div>
+
+
+        <nav
+            class="sidebar-menu"
+            aria-label="Dashboard navigation"
+        >
+
+            <a
+                href="{{ url_for('home') }}"
+                class="sidebar-link"
+                title="Home"
+            >
+                <i class="fa-solid fa-house"></i>
+            </a>
+
+
+            <a
+                href="{{ url_for('stock_tracker') }}"
+                class="sidebar-link"
+                title="Stock Tracker"
+            >
+                <i class="fa-solid fa-box"></i>
+            </a>
+
+
+            <a
+                href="{{ url_for('job_scheduling') }}"
+                class="sidebar-link active"
+                title="Job Scheduling"
+            >
+                <i class="fa-solid fa-calendar-days"></i>
+            </a>
+
+
+            <a
+                href="{{ url_for('job_request') }}"
+                class="sidebar-link"
+                title="Customer Job Request"
+            >
+                <i class="fa-solid fa-comment"></i>
+            </a>
+
+
+            <a
+                href="#"
+                class="sidebar-link coming-soon"
+                data-feature="Documents"
+                title="Documents"
+            >
+                <i class="fa-solid fa-file-lines"></i>
+            </a>
+
+
+            <a
+                href="#"
+                class="sidebar-link coming-soon"
+                data-feature="Information"
+                title="Information"
+            >
+                <i class="fa-solid fa-circle-info"></i>
+            </a>
+
+
+            <a
+                href="#"
+                class="sidebar-link coming-soon"
+                data-feature="Favourites"
+                title="Favourites"
+            >
+                <i class="fa-solid fa-star"></i>
+            </a>
+
+
+            <a
+                href="#"
+                class="sidebar-link coming-soon"
+                data-feature="Reports"
+                title="Reports"
+            >
+                <i class="fa-solid fa-chart-column"></i>
+            </a>
+
+
+            <a
+                href="#"
+                class="sidebar-link coming-soon"
+                data-feature="Settings"
+                title="Settings"
+            >
+                <i class="fa-solid fa-gear"></i>
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+    <!-- ==================================================
+         MAIN PAGE
+    =================================================== -->
+
+    <div class="main-container">
+
+
+        <!-- ==================================================
+             TOP BAR
+        =================================================== -->
+
+        <header class="top-bar">
+
+            <button
+                type="button"
+                class="menu-button"
+                aria-label="Menu"
+            >
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+
+            <div class="brand-name">
+                TimberOps
+            </div>
+
+
+            <div class="profile-menu">
+
+                <button
+                    type="button"
+                    id="profile-button"
+                    class="profile-icon"
+                    aria-label="Profile"
+                    aria-expanded="false"
+                >
+                    <i class="fa-solid fa-user"></i>
+                </button>
+
+
+                <div
+                    id="profile-dropdown"
+                    class="profile-dropdown"
+                >
+
+                    <div class="profile-dropdown-heading">
+
+                        <div class="dropdown-profile-icon">
+
+                            <i class="fa-solid fa-user-shield"></i>
+
+                        </div>
+
+
+                        <div class="profile-details">
+
+                            <strong>
+                                Administrator
+                            </strong>
+
+                            <span>
+                                TimberOps account
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <form
+                        action="{{ url_for('logout') }}"
+                        method="POST"
+                        class="logout-form"
+                    >
+
+                        <button
+                            type="submit"
+                            class="logout-button"
+                        >
+
+                            <i class="fa-solid fa-right-from-bracket"></i>
+
+                            <span>
+                                Log Out
+                            </span>
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- ==================================================
+             PAGE CONTENT
+        =================================================== -->
+
+        <main class="content">
+
+
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+
+                {% if messages %}
+
+                    <section class="flash-container">
+
+                        {% for category, message in messages %}
+
+                            <div class="flash-message {{ category }}">
+
+                                <span>
+                                    {{ message }}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    class="close-flash"
+                                >
+                                    &times;
+                                </button>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </section>
+
+                {% endif %}
+
+            {% endwith %}
+
+
+            <!-- ==================================================
+                 PAGE HEADER
+            =================================================== -->
+
+            <section class="page-head">
+
+                <div>
+
+                    <span class="eyebrow">
+                        Operations
+                    </span>
+
+                    <h1>
+                        Job Scheduling
+                    </h1>
+
+                    <p>
+                        Review customer requests, approve work
+                        and organise accepted jobs on the
+                        TimberOps calendar.
+                    </p>
+
+                </div>
+
+
+                <div class="head-actions">
+
+                    <a
+                        href="{{ url_for('job_request') }}"
+                        class="btn btn-secondary"
+                    >
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+
+                        Customer Request Page
+                    </a>
+
+
+                    <span class="api-pill">
+
+                        <i class="fa-brands fa-google"></i>
+
+                        Google Calendar ready for later
+
+                    </span>
+
+                </div>
+
+            </section>
+
+
+            <!-- ==================================================
+                 SUMMARY CARDS
+            =================================================== -->
+
+            <section class="summary-grid">
+
+                <article class="summary-card warning">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-inbox"></i>
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Pending Requests
+                        </span>
+
+                        <strong>
+                            {{ summary.pending_requests }}
+                        </strong>
+
+                    </div>
+
+                </article>
+
+
+                <article class="summary-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Awaiting Schedule
+                        </span>
+
+                        <strong>
+                            {{ summary.awaiting_schedule }}
+                        </strong>
+
+                    </div>
+
+                </article>
+
+
+                <article class="summary-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Scheduled
+                        </span>
+
+                        <strong>
+                            {{ summary.scheduled_jobs }}
+                        </strong>
+
+                    </div>
+
+                </article>
+
+
+                <article class="summary-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-hammer"></i>
+                    </div>
+
+                    <div>
+
+                        <span>
+                            In Progress
+                        </span>
+
+                        <strong>
+                            {{ summary.in_progress_jobs }}
+                        </strong>
+
+                    </div>
+
+                </article>
+
+
+                <article class="summary-card">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-sun"></i>
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Jobs Today
+                        </span>
+
+                        <strong>
+                            {{ summary.jobs_today }}
+                        </strong>
+
+                    </div>
+
+                </article>
+
+
+                <article class="summary-card success">
+
+                    <div class="summary-icon">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Completed
+                        </span>
+
+                        <strong>
+                            {{ summary.completed_jobs }}
+                        </strong>
+
+                    </div>
+
+                </article>
+
+            </section>
+
+
+            <!-- ==================================================
+                 REQUEST / ACCEPTED WORKSPACE
+            =================================================== -->
+
+            <section class="workspace">
+
+
+                <!-- ==================================================
+                     CUSTOMER REQUESTS
+                =================================================== -->
+
+                <section class="panel">
+
+                    <div class="panel-head">
+
+                        <div>
+
+                            <span class="eyebrow">
+                                Incoming
+                            </span>
+
+                            <h2>
+                                Customer Job Requests
+                            </h2>
+
+                            <p>
+                                Accept a request to convert it
+                                into a schedulable job,
+                                or decline it.
+                            </p>
+
+                        </div>
+
+
+                        <span class="count-pill">
+
+                            {{ pending_requests|length }}
+                            pending
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="request-list">
+
+                        {% for r in pending_requests %}
+
+                            <article
+                                class="request-card {{ r.priority|lower }}"
+                            >
+
+                                <div class="card-top">
+
+                                    <div>
+
+                                        <span class="reference">
+                                            {{ r.request_number }}
+                                        </span>
+
+                                        <h3>
+                                            {{ r.job_title }}
+                                        </h3>
+
+                                    </div>
+
+
+                                    <span
+                                        class="priority {{ r.priority }}"
+                                    >
+                                        {{ r.priority }}
+                                    </span>
+
+                                </div>
+
+
+                                <div class="meta">
+
+                                    <span>
+
+                                        <i class="fa-solid fa-user"></i>
+
+                                        {{ r.customer_name }}
+
+                                    </span>
+
+
+                                    <span>
+
+                                        <i class="fa-solid fa-screwdriver-wrench"></i>
+
+                                        {{ r.job_type }}
+
+                                    </span>
+
+
+                                    <span>
+
+                                        <i class="fa-solid fa-location-dot"></i>
+
+                                        {{ r.suburb }}
+
+                                    </span>
+
+
+                                    <span>
+
+                                        <i class="fa-solid fa-calendar"></i>
+
+                                        {% if r.preferred_date %}
+
+                                            Preferred
+                                            {{ r.preferred_date }}
+
+                                        {% else %}
+
+                                            Date flexible
+
+                                        {% endif %}
+
+                                    </span>
+
+                                </div>
+
+
+                                <p class="desc">
+                                    {{ r.description }}
+                                </p>
+
+
+                                <details class="request-details">
+
+                                    <summary>
+                                        View full request
+                                    </summary>
+
+
+                                    <div class="detail-grid">
+
+                                        <div>
+
+                                            <span>
+                                                Email
+                                            </span>
+
+                                            <strong>
+                                                {{ r.customer_email }}
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <span>
+                                                Phone
+                                            </span>
+
+                                            <strong>
+                                                {{ r.customer_phone }}
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <span>
+                                                Site
+                                            </span>
+
+                                            <strong>
+                                                {{ r.site_address }},
+                                                {{ r.suburb }}
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <span>
+                                                Preferred time
+                                            </span>
+
+                                            <strong>
+
+                                                {% if r.preferred_start_time %}
+
+                                                    {{ r.preferred_start_time }}
+                                                    –
+                                                    {{ r.preferred_end_time }}
+
+                                                {% else %}
+
+                                                    Flexible
+
+                                                {% endif %}
+
+                                            </strong>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    {% if r.notes %}
+
+                                        <div class="customer-note">
+
+                                            <span>
+                                                Customer notes
+                                            </span>
+
+                                            <p>
+                                                {{ r.notes }}
+                                            </p>
+
+                                        </div>
+
+                                    {% endif %}
+
+                                </details>
+
+
+                                <div class="request-actions">
+
+
+                                    <!-- Accept -->
+                                    <form
+                                        action="{{ url_for(
+                                            'accept_job_request',
+                                            request_id=r.id
+                                        ) }}"
+                                        method="POST"
+                                    >
+
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="{{ csrf_token() }}"
+                                        >
+
+
+                                        <button
+                                            type="submit"
+                                            class="accept-btn"
+                                        >
+
+                                            <i class="fa-solid fa-check"></i>
+
+                                            Accept
+
+                                        </button>
+
+                                    </form>
+
+
+                                    <!-- Decline -->
+                                    <form
+                                        action="{{ url_for(
+                                            'decline_job_request',
+                                            request_id=r.id
+                                        ) }}"
+                                        method="POST"
+                                        class="decline-form"
+                                        data-reference="{{ r.request_number }}"
+                                    >
+
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="{{ csrf_token() }}"
+                                        >
+
+                                        <input
+                                            type="hidden"
+                                            name="decline_reason"
+                                            value=""
+                                        >
+
+
+                                        <button
+                                            type="submit"
+                                            class="decline-btn"
+                                        >
+
+                                            <i class="fa-solid fa-xmark"></i>
+
+                                            Decline
+
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            </article>
+
+
+                        {% else %}
+
+                            <div class="empty">
+
+                                <i class="fa-solid fa-inbox"></i>
+
+                                <strong>
+                                    No pending requests
+                                </strong>
+
+                                <span>
+                                    New customer enquiries will
+                                    appear here automatically.
+                                </span>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </section>
+
+
+                <!-- ==================================================
+                     READY TO SCHEDULE
+                =================================================== -->
+
+                <section class="panel">
+
+                    <div class="panel-head">
+
+                        <div>
+
+                            <span class="eyebrow">
+                                Accepted
+                            </span>
+
+                            <h2>
+                                Ready to Schedule
+                            </h2>
+
+                            <p>
+                                Accepted jobs not yet placed
+                                on the calendar.
+                            </p>
+
+                        </div>
+
+
+                        <span class="count-pill">
+
+                            {{ accepted_unscheduled|length }}
+                            waiting
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="accepted-list">
+
+                        {% for job in accepted_unscheduled %}
+
+                            <article class="accepted-card">
+
+                                <div class="card-top">
+
+                                    <div>
+
+                                        <span class="reference">
+                                            {{ job.job_number }}
+                                        </span>
+
+                                        <h3>
+                                            {{ job.job_title }}
+                                        </h3>
+
+                                    </div>
+
+
+                                    <span
+                                        class="priority {{ job.priority }}"
+                                    >
+                                        {{ job.priority }}
+                                    </span>
+
+                                </div>
+
+
+                                <p>
+                                    {{ job.customer_name }}
+                                    ·
+                                    {{ job.suburb }}
+                                </p>
+
+
+                                <button
+                                    type="button"
+                                    class="schedule-btn open-schedule"
+
+                                    data-id="{{ job.id }}"
+
+                                    data-number="{{ job.job_number }}"
+
+                                    data-title="{{ job.job_title }}"
+
+                                    data-url="{{ url_for(
+                                        'schedule_job',
+                                        job_id=job.id
+                                    ) }}"
+
+                                    data-date=""
+
+                                    data-start=""
+
+                                    data-end=""
+
+                                    data-worker="{{ job.assigned_to }}"
+
+                                    data-hours="{{ job.estimated_hours }}"
+                                >
+
+                                    <i class="fa-solid fa-calendar-plus"></i>
+
+                                    Schedule Job
+
+                                </button>
+
+                            </article>
+
+
+                        {% else %}
+
+                            <div class="empty">
+
+                                <i class="fa-solid fa-calendar-check"></i>
+
+                                <strong>
+                                    Nothing waiting
+                                </strong>
+
+                                <span>
+                                    Accepted requests will appear
+                                    here until scheduled.
+                                </span>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </section>
+
+            </section>
+
+
+            <!-- ==================================================
+                 CALENDAR
+            =================================================== -->
+
+            <section
+                class="panel calendar-panel"
+                id="calendar"
+            >
+
+                <div class="calendar-toolbar">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            Schedule
+                        </span>
+
+                        <h2>
+                            {{ month_name }}
+                            {{ selected_year }}
+                        </h2>
+
+                        <p>
+                            Click + on a day to place an accepted
+                            job there, or click an existing event
+                            to reschedule it.
+                        </p>
+
+                    </div>
+
+
+                    <div class="calendar-nav">
+
+                        <a
+                            class="nav-square"
+                            href="{{ url_for(
+                                'job_scheduling',
+                                month=previous_month,
+                                year=previous_year
+                            ) }}#calendar"
+                        >
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+
+
+                        <a
+                            class="today-btn"
+                            href="{{ url_for(
+                                'job_scheduling',
+                                month=today.month,
+                                year=today.year
+                            ) }}#calendar"
+                        >
+                            Today
+                        </a>
+
+
+                        <a
+                            class="nav-square"
+                            href="{{ url_for(
+                                'job_scheduling',
+                                month=next_month,
+                                year=next_year
+                            ) }}#calendar"
+                        >
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+                <div class="weekdays">
+
+                    <span>Mon</span>
+                    <span>Tue</span>
+                    <span>Wed</span>
+                    <span>Thu</span>
+                    <span>Fri</span>
+                    <span>Sat</span>
+                    <span>Sun</span>
+
+                </div>
+
+
+                <div class="calendar-grid">
+
+                    {% for week in calendar_weeks %}
+
+                        {% for day in week %}
+
+                            <article
+                                class="
+                                    day
+                                    {% if not day.in_month %}
+                                        out
+                                    {% endif %}
+
+                                    {% if day.is_today %}
+                                        today
+                                    {% endif %}
+                                "
+                            >
+
+                                <div class="day-head">
+
+                                    <span class="day-num">
+                                        {{ day.day_number }}
+                                    </span>
+
+
+                                    <button
+                                        type="button"
+                                        class="day-add"
+                                        data-date="{{ day.iso }}"
+
+                                        {% if accepted_unscheduled|length == 0 %}
+                                            disabled
+                                        {% endif %}
+                                    >
+
+                                        <i class="fa-solid fa-plus"></i>
+
+                                    </button>
+
+                                </div>
+
+
+                                <div class="events">
+
+                                    {% for job in day.jobs %}
+
+                                        <button
+                                            type="button"
+
+                                            class="
+                                                event
+                                                {{ job.status|replace(' ', '-') }}
+                                                open-schedule
+                                            "
+
+                                            data-id="{{ job.id }}"
+
+                                            data-number="{{ job.job_number }}"
+
+                                            data-title="{{ job.job_title }}"
+
+                                            data-url="{{ url_for(
+                                                'schedule_job',
+                                                job_id=job.id
+                                            ) }}"
+
+                                            data-date="{{ job.scheduled_date }}"
+
+                                            data-start="{{ job.start_time }}"
+
+                                            data-end="{{ job.end_time }}"
+
+                                            data-worker="{{ job.assigned_to }}"
+
+                                            data-hours="{{ job.estimated_hours }}"
+                                        >
+
+                                            <span class="event-time">
+
+                                                {{ job.start_time or "Any time" }}
+
+                                            </span>
+
+
+                                            <span class="event-title">
+
+                                                {{ job.job_title }}
+
+                                            </span>
+
+                                        </button>
+
+                                    {% endfor %}
+
+                                </div>
+
+                            </article>
+
+                        {% endfor %}
+
+                    {% endfor %}
+
+                </div>
+
+            </section>
+
+
+            <!-- ==================================================
+                 ALL JOBS
+            =================================================== -->
+
+            <section class="panel">
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            Job register
+                        </span>
+
+                        <h2>
+                            All Jobs
+                        </h2>
+
+                        <p>
+                            Reschedule work and update progress
+                            from one place.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="table-wrap">
+
+                    <table class="jobs-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Job</th>
+
+                                <th>Customer</th>
+
+                                <th>Schedule</th>
+
+                                <th>Assigned</th>
+
+                                <th>Status</th>
+
+                                <th>Google Calendar</th>
+
+                                <th>Actions</th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for job in jobs %}
+
+                                <tr>
+
+                                    <td>
+
+                                        <strong>
+                                            {{ job.job_number }}
+                                        </strong>
+
+                                        <span>
+                                            {{ job.job_title }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <strong>
+                                            {{ job.customer_name }}
+                                        </strong>
+
+                                        <span>
+                                            {{ job.suburb }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if job.scheduled_date %}
+
+                                            <strong>
+                                                {{ job.scheduled_date }}
+                                            </strong>
+
+                                            <span>
+
+                                                {% if job.start_time %}
+
+                                                    {{ job.start_time }}
+                                                    –
+                                                    {{ job.end_time }}
+
+                                                {% else %}
+
+                                                    Time flexible
+
+                                                {% endif %}
+
+                                            </span>
+
+                                        {% else %}
+
+                                            <span>
+                                                Not scheduled
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <td>
+                                        {{ job.assigned_to or "Unassigned" }}
+                                    </td>
+
+
+                                    <td>
+
+                                        <span
+                                            class="
+                                                status-pill
+                                                {{ job.status|replace(' ', '-') }}
+                                            "
+                                        >
+                                            {{ job.status }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="sync-pill">
+
+                                            <i class="fa-brands fa-google"></i>
+
+                                            {% if job.google_event_id %}
+
+                                                Synced
+
+                                            {% else %}
+
+                                                Not connected
+
+                                            {% endif %}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <div class="job-actions">
+
+
+                                            {% if job.status not in ["Completed", "Cancelled"] %}
+
+                                                <button
+                                                    type="button"
+
+                                                    class="icon-btn open-schedule"
+
+                                                    data-id="{{ job.id }}"
+
+                                                    data-number="{{ job.job_number }}"
+
+                                                    data-title="{{ job.job_title }}"
+
+                                                    data-url="{{ url_for(
+                                                        'schedule_job',
+                                                        job_id=job.id
+                                                    ) }}"
+
+                                                    data-date="{{ job.scheduled_date }}"
+
+                                                    data-start="{{ job.start_time }}"
+
+                                                    data-end="{{ job.end_time }}"
+
+                                                    data-worker="{{ job.assigned_to }}"
+
+                                                    data-hours="{{ job.estimated_hours }}"
+
+                                                    title="Schedule or reschedule job"
+                                                >
+
+                                                    <i class="fa-solid fa-calendar-days"></i>
+
+                                                </button>
+
+                                            {% endif %}
+
+
+                                            <form
+                                                action="{{ url_for(
+                                                    'update_job_status',
+                                                    job_id=job.id
+                                                ) }}"
+                                                method="POST"
+                                                class="status-form"
+                                            >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="csrf_token"
+                                                    value="{{ csrf_token() }}"
+                                                >
+
+
+                                                <select
+                                                    name="status"
+                                                    aria-label="Job status"
+                                                >
+
+                                                    {% for status in job_statuses %}
+
+                                                        {% if status != "Received" %}
+
+                                                            <option
+                                                                value="{{ status }}"
+
+                                                                {% if status == job.status %}
+                                                                    selected
+                                                                {% endif %}
+                                                            >
+                                                                {{ status }}
+                                                            </option>
+
+                                                        {% endif %}
+
+                                                    {% endfor %}
+
+                                                </select>
+
+
+                                                <button
+                                                    class="save-btn"
+                                                    type="submit"
+                                                    title="Save status"
+                                                >
+
+                                                    <i class="fa-solid fa-floppy-disk"></i>
+
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+
+                            {% else %}
+
+                                <tr>
+
+                                    <td
+                                        colspan="7"
+                                        style="
+                                            text-align: center;
+                                            padding: 50px;
+                                            color: #777;
+                                        "
+                                    >
+                                        No accepted jobs yet.
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <!-- ==================================================
+         SCHEDULE JOB MODAL
+    =================================================== -->
+
+    <div
+        class="modal"
+        id="schedule-modal"
+        hidden
+        aria-hidden="true"
+    >
+
+        <div class="modal-bg"></div>
+
+
+        <section class="modal-card">
+
+            <header class="modal-head">
+
+                <div>
+
+                    <span class="eyebrow">
+                        Calendar
+                    </span>
+
+                    <h2>
+                        Schedule Job
+                    </h2>
+
+                    <p id="schedule-description">
+                        Choose an accepted job and place
+                        it on the calendar.
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="modal-close"
+                >
+                    &times;
+                </button>
+
+            </header>
+
+
+            <form
+                method="POST"
+                id="schedule-form"
+                class="schedule-form"
+            >
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
+
+
+                <label>
+
+                    <span>
+                        Accepted Job *
+                    </span>
+
+
+                    <select
+                        id="schedule-job"
+                        required
+                    >
+
+                        <option value="">
+                            Select a job
+                        </option>
+
+
+                        {% for job in accepted_unscheduled %}
+
+                            <option
+                                value="{{ job.id }}"
+
+                                data-url="{{ url_for(
+                                    'schedule_job',
+                                    job_id=job.id
+                                ) }}"
+
+                                data-number="{{ job.job_number }}"
+
+                                data-title="{{ job.job_title }}"
+                            >
+                                {{ job.job_number }}
+                                —
+                                {{ job.job_title }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </label>
+
+
+                <div class="form-grid">
+
+                    <label>
+
+                        <span>
+                            Date *
+                        </span>
+
+                        <input
+                            type="date"
+                            name="scheduled_date"
+                            id="schedule-date"
+                            required
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>
+                            Assigned Carpenter
+                        </span>
+
+                        <input
+                            type="text"
+                            name="assigned_to"
+                            id="schedule-worker"
+                            maxlength="100"
+                            placeholder="Carpenter name"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>
+                            Start Time
+                        </span>
+
+                        <input
+                            type="time"
+                            name="start_time"
+                            id="schedule-start"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>
+                            End Time
+                        </span>
+
+                        <input
+                            type="time"
+                            name="end_time"
+                            id="schedule-end"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        <span>
+                            Estimated Hours
+                        </span>
+
+                        <input
+                            type="number"
+                            name="estimated_hours"
+                            id="schedule-hours"
+                            min="0"
+                            max="1000"
+                            step="0.25"
+                            value="0"
+                        >
+
+                    </label>
+
+
+                    <label class="full">
+
+                        <span>
+                            Scheduling Notes
+                        </span>
+
+                        <textarea
+                            name="schedule_notes"
+                            maxlength="700"
+                            rows="3"
+                        ></textarea>
+
+                    </label>
+
+                </div>
+
+
+                <div class="google-note">
+
+                    <i class="fa-brands fa-google"></i>
+
+                    <div>
+
+                        <strong>
+                            Google Calendar integration point prepared.
+                        </strong>
+
+                        <br>
+
+                        The job is saved to TimberOps now.
+                        Later this same save action can
+                        create or update the Google event.
+
+                    </div>
+
+                </div>
+
+
+                <footer class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary modal-cancel"
+                    >
+                        Cancel
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+
+                        <i class="fa-solid fa-calendar-check"></i>
+
+                        Save to Calendar
+
+                    </button>
+
+                </footer>
+
+            </form>
+
+        </section>
+
+    </div>
+
+
+    <!-- ==================================================
+         JAVASCRIPT
+    =================================================== -->
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+
+                // =================================================
+                // PROFILE MENU
+                // =================================================
+
+                const profileButton =
+                    document.getElementById(
+                        "profile-button"
+                    );
+
+
+                const profileDropdown =
+                    document.getElementById(
+                        "profile-dropdown"
+                    );
+
+
+                if (
+                    profileButton
+                    && profileDropdown
+                ) {
+
+                    profileButton.addEventListener(
+                        "click",
+                        function (event) {
+
+                            event.stopPropagation();
+
+
+                            const isOpen =
+                                profileDropdown
+                                    .classList
+                                    .toggle(
+                                        "profile-dropdown-open"
+                                    );
+
+
+                            profileButton.setAttribute(
+                                "aria-expanded",
+                                isOpen.toString()
+                            );
+                        }
+                    );
+
+
+                    profileDropdown.addEventListener(
+                        "click",
+                        function (event) {
+
+                            event.stopPropagation();
+
+                        }
+                    );
+
+
+                    document.addEventListener(
+                        "click",
+                        function () {
+
+                            profileDropdown
+                                .classList
+                                .remove(
+                                    "profile-dropdown-open"
+                                );
+
+
+                            profileButton.setAttribute(
+                                "aria-expanded",
+                                "false"
+                            );
+                        }
+                    );
+                }
+
+
+                // =================================================
+                // COMING SOON LINKS
+                // =================================================
+
+                document.querySelectorAll(
+                    ".coming-soon"
+                ).forEach(function (link) {
+
+                    link.addEventListener(
+                        "click",
+                        function (event) {
+
+                            event.preventDefault();
+
+
+                            alert(
+                                (
+                                    link.dataset.feature
+                                    || "This feature"
+                                )
+                                + " will be added later."
+                            );
+                        }
+                    );
+                });
+
+
+                // =================================================
+                // FLASH MESSAGES
+                // =================================================
+
+                document.querySelectorAll(
+                    ".close-flash"
+                ).forEach(function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            const message =
+                                button.closest(
+                                    ".flash-message"
+                                );
+
+
+                            if (message) {
+
+                                message.remove();
+                            }
+                        }
+                    );
+                });
+
+
+                // =================================================
+                // DECLINE REQUEST
+                // =================================================
+
+                document.querySelectorAll(
+                    ".decline-form"
+                ).forEach(function (form) {
+
+                    form.addEventListener(
+                        "submit",
+                        function (event) {
+
+                            event.preventDefault();
+
+
+                            const confirmed =
+                                confirm(
+                                    "Decline "
+                                    + form.dataset.reference
+                                    + "?"
+                                );
+
+
+                            if (!confirmed) {
+
+                                return;
+                            }
+
+
+                            const reason =
+                                prompt(
+                                    "Optional: reason for declining."
+                                );
+
+
+                            if (reason === null) {
+
+                                return;
+                            }
+
+
+                            form.querySelector(
+                                '[name="decline_reason"]'
+                            ).value =
+                                reason.slice(
+                                    0,
+                                    500
+                                );
+
+
+                            form.submit();
+                        }
+                    );
+                });
+
+
+                // =================================================
+                // SCHEDULE MODAL
+                // =================================================
+
+                const modal =
+                    document.getElementById(
+                        "schedule-modal"
+                    );
+
+
+                const form =
+                    document.getElementById(
+                        "schedule-form"
+                    );
+
+
+                const select =
+                    document.getElementById(
+                        "schedule-job"
+                    );
+
+
+                const dateInput =
+                    document.getElementById(
+                        "schedule-date"
+                    );
+
+
+                const start =
+                    document.getElementById(
+                        "schedule-start"
+                    );
+
+
+                const end =
+                    document.getElementById(
+                        "schedule-end"
+                    );
+
+
+                const worker =
+                    document.getElementById(
+                        "schedule-worker"
+                    );
+
+
+                const hours =
+                    document.getElementById(
+                        "schedule-hours"
+                    );
+
+
+                const description =
+                    document.getElementById(
+                        "schedule-description"
+                    );
+
+
+                function openModal() {
+
+                    modal.hidden = false;
+
+                    modal.classList.add(
+                        "open"
+                    );
+
+
+                    modal.setAttribute(
+                        "aria-hidden",
+                        "false"
+                    );
+
+
+                    document.body.style.overflow =
+                        "hidden";
+                }
+
+
+                function closeModal() {
+
+                    modal.classList.remove(
+                        "open"
+                    );
+
+
+                    modal.hidden = true;
+
+
+                    modal.setAttribute(
+                        "aria-hidden",
+                        "true"
+                    );
+
+
+                    document.body.style.overflow =
+                        "";
+                }
+
+
+                function setAction() {
+
+                    const selectedOption =
+                        select.options[
+                            select.selectedIndex
+                        ];
+
+
+                    if (
+                        selectedOption
+                        && selectedOption.value
+                        && selectedOption.dataset.url
+                    ) {
+
+                        form.action =
+                            selectedOption.dataset.url;
+
+
+                        description.textContent =
+                            (
+                                selectedOption.dataset.number
+                                || "Job"
+                            )
+                            + " — "
+                            + (
+                                selectedOption.dataset.title
+                                || ""
+                            );
+
+
+                        return true;
+                    }
+
+
+                    form.removeAttribute(
+                        "action"
+                    );
+
+
+                    return false;
+                }
+
+
+                select.addEventListener(
+                    "change",
+                    setAction
+                );
+
+
+                // =================================================
+                // EXISTING JOB / READY TO SCHEDULE
+                // =================================================
+
+                document.querySelectorAll(
+                    ".open-schedule"
+                ).forEach(function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            let option =
+                                select.querySelector(
+                                    'option[value="'
+                                    + button.dataset.id
+                                    + '"]'
+                                );
+
+
+                            if (!option) {
+
+                                option =
+                                    document.createElement(
+                                        "option"
+                                    );
+
+
+                                option.value =
+                                    button.dataset.id;
+
+
+                                option.textContent =
+                                    button.dataset.number
+                                    + " — "
+                                    + button.dataset.title;
+
+
+                                option.dataset.url =
+                                    button.dataset.url;
+
+
+                                option.dataset.number =
+                                    button.dataset.number;
+
+
+                                option.dataset.title =
+                                    button.dataset.title;
+
+
+                                option.dataset.temp =
+                                    "1";
+
+
+                                select.appendChild(
+                                    option
+                                );
+                            }
+
+
+                            select.value =
+                                button.dataset.id;
+
+
+                            form.action =
+                                button.dataset.url;
+
+
+                            dateInput.value =
+                                button.dataset.date
+                                || "";
+
+
+                            start.value =
+                                button.dataset.start
+                                || "";
+
+
+                            end.value =
+                                button.dataset.end
+                                || "";
+
+
+                            worker.value =
+                                button.dataset.worker
+                                || "";
+
+
+                            hours.value =
+                                button.dataset.hours
+                                || "0";
+
+
+                            description.textContent =
+                                button.dataset.number
+                                + " — "
+                                + button.dataset.title;
+
+
+                            openModal();
+                        }
+                    );
+                });
+
+
+                // =================================================
+                // CLICK + ON CALENDAR DAY
+                // =================================================
+
+                document.querySelectorAll(
+                    ".day-add"
+                ).forEach(function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            select.querySelectorAll(
+                                '[data-temp="1"]'
+                            ).forEach(
+                                function (option) {
+
+                                    option.remove();
+
+                                }
+                            );
+
+
+                            select.value =
+                                "";
+
+
+                            form.removeAttribute(
+                                "action"
+                            );
+
+
+                            dateInput.value =
+                                button.dataset.date;
+
+
+                            start.value =
+                                "";
+
+
+                            end.value =
+                                "";
+
+
+                            worker.value =
+                                "";
+
+
+                            hours.value =
+                                "0";
+
+
+                            description.textContent =
+                                (
+                                    "Choose an accepted job for "
+                                    + button.dataset.date
+                                    + "."
+                                );
+
+
+                            openModal();
+
+
+                            select.focus();
+                        }
+                    );
+                });
+
+
+                // =================================================
+                // MODAL CLOSE
+                // =================================================
+
+                document.querySelectorAll(
+                    ".modal-close, .modal-cancel, .modal-bg"
+                ).forEach(function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        closeModal
+                    );
+                });
+
+
+                document.addEventListener(
+                    "keydown",
+                    function (event) {
+
+                        if (
+                            event.key
+                            === "Escape"
+                        ) {
+
+                            closeModal();
+                        }
+                    }
+                );
+
+
+                // =================================================
+                // SCHEDULE VALIDATION
+                // =================================================
+
+                form.addEventListener(
+                    "submit",
+                    function (event) {
+
+                        if (!setAction()) {
+
+                            event.preventDefault();
+
+
+                            alert(
+                                "Select a job first."
+                            );
+
+
+                            return;
+                        }
+
+
+                        if (
+                            (
+                                start.value
+                                && !end.value
+                            )
+
+                            ||
+
+                            (
+                                !start.value
+                                && end.value
+                            )
+                        ) {
+
+                            event.preventDefault();
+
+
+                            alert(
+                                (
+                                    "Enter both start and end "
+                                    + "times, or leave both blank."
+                                )
+                            );
+
+
+                            return;
+                        }
+
+
+                        if (
+                            start.value
+                            && end.value
+                            && end.value <= start.value
+                        ) {
+
+                            event.preventDefault();
+
+
+                            alert(
+                                (
+                                    "End time must be later "
+                                    + "than start time."
+                                )
+                            );
+                        }
+                    }
+                );
+
+
+                // =================================================
+                // STATUS CONFIRMATIONS
+                // =================================================
+
+                document.querySelectorAll(
+                    ".status-form"
+                ).forEach(function (statusForm) {
+
+                    statusForm.addEventListener(
+                        "submit",
+                        function (event) {
+
+                            const status =
+                                statusForm
+                                    .querySelector(
+                                        "select"
+                                    )
+                                    .value;
+
+
+                            if (
+                                status === "Completed"
+
+                                && !confirm(
+                                    (
+                                        "Mark this job "
+                                        + "as completed?"
+                                    )
+                                )
+                            ) {
+
+                                event.preventDefault();
+                            }
+
+
+                            if (
+                                status === "Cancelled"
+
+                                && !confirm(
+                                    "Cancel this job?"
+                                )
+                            ) {
+
+                                event.preventDefault();
+                            }
+                        }
+                    );
+                });
+
+            }
+        );
+
+    </script>
+
+</body>
+
+</html>

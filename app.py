@@ -1,29 +1,30 @@
+from __future__ import annotations
+
+import calendar
 import csv
+import hmac
 import io
-import json
 import os
 import re
+import secrets
 import sqlite3
-
-import calendar as calendar_module
 
 from datetime import date, datetime, timedelta
 from functools import wraps
 from pathlib import Path
-
-from urllib import error as urllib_error
-from urllib import request as urllib_request
+from typing import Any
 
 from flask import (
     Flask,
     Response,
+    abort,
     flash,
     g,
     redirect,
     render_template,
     request,
     session,
-    url_for
+    url_for,
 )
 
 
@@ -31,23 +32,29 @@ from flask import (
 # APPLICATION CONFIGURATION
 # ==========================================================
 
-BASE_DIRECTORY = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent
 
-DATABASE_PATH = BASE_DIRECTORY / "timberops.db"
+DB_PATH = BASE_DIR / "timberops.db"
+
+SCHEMA_PATH = BASE_DIR / "database.sql"
 
 
 app = Flask(__name__)
 
 
-# Use an environment variable when the application is deployed.
-app.secret_key = os.environ.get(
-    "TIMBEROPS_SECRET_KEY",
-    "TimberOps2026"
+app.config.update(
+    SECRET_KEY=os.environ.get(
+        "TIMBEROPS_SECRET_KEY",
+        "TimberOps2026"
+    ),
+
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
 )
 
 
 # ==========================================================
-# STOCK OPTIONS
+# STOCK TRACKER OPTIONS
 # ==========================================================
 
 CATEGORIES = (
@@ -62,7 +69,7 @@ CATEGORIES = (
     "Hand Tools",
     "Power Tools",
     "Tool Accessories",
-    "Safety Equipment"
+    "Safety Equipment",
 )
 
 
@@ -77,7 +84,7 @@ UNITS = (
     "litres",
     "tubes",
     "rolls",
-    "kilograms"
+    "kilograms",
 )
 
 
@@ -102,162 +109,429 @@ SORT_OPTIONS = {
         "item_name COLLATE NOCASE ASC",
 
     "code_asc":
-        "item_code COLLATE NOCASE ASC"
+        "item_code COLLATE NOCASE ASC",
 }
 
 
 # ==========================================================
-# SUPPLIER SEARCH OPTIONS
+# JOB SCHEDULING OPTIONS
 # ==========================================================
 
-SUPPLIER_SEARCH_TERMS = {
-    "Structural Timber":
-        "structural timber merchant",
-
-    "Dressed Timber":
-        "dressed timber hardwood supplier",
-
-    "Decking Timber":
-        "decking timber supplier",
-
-    "Sheet Materials":
-        "plywood MDF sheet material supplier",
-
-    "Hardware and Fixings":
-        "carpentry hardware and fixings supplier",
-
-    "Adhesives":
-        "woodworking adhesive supplier",
-
-    "Finishes and Coatings":
-        "wood finishes and coatings supplier",
-
-    "Abrasives":
-        "woodworking abrasives supplier",
-
-    "Hand Tools":
-        "carpentry hand tools supplier",
-
-    "Power Tools":
-        "power tools supplier",
-
-    "Tool Accessories":
-        "power tool accessories supplier",
-
-    "Safety Equipment":
-        "workplace safety equipment supplier"
-}
+JOB_TYPES = (
+    "Custom Furniture",
+    "Cabinetry",
+    "Joinery",
+    "Decking",
+    "Timber Framing",
+    "Door Installation",
+    "Window Installation",
+    "Repairs and Maintenance",
+    "Fit-Out",
+    "Renovation",
+    "On-Site Installation",
+    "Other",
+)
 
 
-# Approximate Greater Melbourne rectangular boundary.
-MELBOURNE_RECTANGLE = {
-    "low": {
-        "latitude": -38.55,
-        "longitude": 144.35
-    },
+JOB_PRIORITIES = (
+    "Low",
+    "Normal",
+    "High",
+    "Urgent",
+)
 
-    "high": {
-        "latitude": -37.35,
-        "longitude": 145.60
-    }
-}
+
+JOB_STATUSES = (
+    "Received",
+    "Accepted",
+    "Scheduled",
+    "In Progress",
+    "On Hold",
+    "Completed",
+    "Cancelled",
+)
 
 
 # ==========================================================
-# DATABASE FUNCTIONS
+# DATABASE
 # ==========================================================
 
-def get_database():
+def db() -> sqlite3.Connection:
     """
-    Returns one SQLite connection for the current request.
+    Returns one SQLite database connection
+    for the current Flask request.
     """
 
-    if "database" not in g:
+    if "db" not in g:
 
-        g.database = sqlite3.connect(
-            DATABASE_PATH
+        g.db = sqlite3.connect(
+            DB_PATH
         )
 
-        g.database.row_factory = sqlite3.Row
+        g.db.row_factory = sqlite3.Row
 
-        g.database.execute(
+        g.db.execute(
             "PRAGMA foreign_keys = ON"
         )
 
-    return g.database
+    return g.db
 
 
 @app.teardown_appcontext
-def close_database(_error):
+def close_db(_error=None):
     """
-    Closes the database connection after each request.
+    Closes the database after each request.
     """
 
-    database = g.pop(
-        "database",
+    connection = g.pop(
+        "db",
         None
     )
 
-    if database is not None:
-        database.close()
+    if connection is not None:
+        connection.close()
 
 
-def initialise_database():
+def columns(table: str) -> set[str]:
     """
-    Creates the tables and upgrades an older stock table.
+    Returns the current columns in a database table.
     """
 
-    database = get_database()
-
-    schema_path = (
-        BASE_DIRECTORY
-        / "database.sql"
-    )
-
-    with schema_path.open(
-        "r",
-        encoding="utf-8"
-    ) as schema_file:
-
-        database.executescript(
-            schema_file.read()
-        )
-
-    # Supports older versions of the TimberOps database.
-    existing_columns = {
+    return {
         row["name"]
 
-        for row in database.execute(
-            "PRAGMA table_info(stock_items)"
-        ).fetchall()
+        for row in db().execute(
+            f"PRAGMA table_info({table})"
+        )
     }
 
-    if "specification" not in existing_columns:
 
-        database.execute(
-            """
-            ALTER TABLE stock_items
-            ADD COLUMN specification
-            TEXT NOT NULL DEFAULT ''
-            """
-        )
-
-    if "unit_cost" not in existing_columns:
-
-        database.execute(
-            """
-            ALTER TABLE stock_items
-            ADD COLUMN unit_cost
-            REAL NOT NULL DEFAULT 0
-            """
-        )
-
-    database.commit()
-
-
-def current_time():
+def add_column(
+    table: str,
+    name: str,
+    definition: str
+):
     """
-    Returns the current date and time for SQLite.
+    Safely adds a missing column to an existing table.
+    """
+
+    if name not in columns(table):
+
+        db().execute(
+            f"""
+            ALTER TABLE {table}
+            ADD COLUMN {name} {definition}
+            """
+        )
+
+
+def init_db():
+    """
+    Loads the existing TimberOps database schema
+    and safely upgrades it for Job Requests and
+    Job Scheduling.
+
+    Existing stock data is not deleted.
+    """
+
+    if SCHEMA_PATH.exists():
+
+        db().executescript(
+            SCHEMA_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+
+
+    # ------------------------------------------------------
+    # CORE TABLES
+    # ------------------------------------------------------
+
+    db().executescript(
+        """
+        CREATE TABLE IF NOT EXISTS stock_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            item_code TEXT NOT NULL UNIQUE,
+
+            item_name TEXT NOT NULL,
+
+            category TEXT NOT NULL,
+
+            specification
+                TEXT NOT NULL DEFAULT '',
+
+            quantity
+                INTEGER NOT NULL DEFAULT 0,
+
+            minimum_level
+                INTEGER NOT NULL DEFAULT 0,
+
+            unit
+                TEXT NOT NULL DEFAULT 'units',
+
+            location
+                TEXT NOT NULL DEFAULT '',
+
+            unit_cost
+                REAL NOT NULL DEFAULT 0,
+
+            notes
+                TEXT NOT NULL DEFAULT '',
+
+            created_at TEXT NOT NULL,
+
+            updated_at TEXT NOT NULL
+        );
+
+
+        CREATE TABLE IF NOT EXISTS stock_activity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            stock_item_id INTEGER NOT NULL,
+
+            movement_type TEXT NOT NULL,
+
+            amount INTEGER NOT NULL,
+
+            previous_quantity INTEGER NOT NULL,
+
+            new_quantity INTEGER NOT NULL,
+
+            reason
+                TEXT NOT NULL DEFAULT '',
+
+            created_at TEXT NOT NULL,
+
+            FOREIGN KEY (stock_item_id)
+                REFERENCES stock_items(id)
+                ON DELETE CASCADE
+        );
+
+
+        CREATE TABLE IF NOT EXISTS job_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            request_number
+                TEXT NOT NULL UNIQUE,
+
+            customer_name
+                TEXT NOT NULL,
+
+            customer_email
+                TEXT NOT NULL,
+
+            customer_phone
+                TEXT NOT NULL,
+
+            job_title
+                TEXT NOT NULL,
+
+            job_type
+                TEXT NOT NULL,
+
+            description
+                TEXT NOT NULL,
+
+            site_address
+                TEXT NOT NULL,
+
+            suburb
+                TEXT NOT NULL,
+
+            preferred_date
+                TEXT NOT NULL DEFAULT '',
+
+            preferred_start_time
+                TEXT NOT NULL DEFAULT '',
+
+            preferred_end_time
+                TEXT NOT NULL DEFAULT '',
+
+            priority
+                TEXT NOT NULL DEFAULT 'Normal',
+
+            notes
+                TEXT NOT NULL DEFAULT '',
+
+            status
+                TEXT NOT NULL DEFAULT 'Pending',
+
+            admin_note
+                TEXT NOT NULL DEFAULT '',
+
+            job_id INTEGER,
+
+            decision_at
+                TEXT NOT NULL DEFAULT '',
+
+            created_at TEXT NOT NULL,
+
+            updated_at TEXT NOT NULL
+        );
+
+
+        CREATE TABLE IF NOT EXISTS jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            job_number
+                TEXT NOT NULL UNIQUE,
+
+            request_id INTEGER,
+
+            customer_name
+                TEXT NOT NULL,
+
+            customer_phone
+                TEXT NOT NULL DEFAULT '',
+
+            customer_email
+                TEXT NOT NULL DEFAULT '',
+
+            job_title
+                TEXT NOT NULL,
+
+            job_type
+                TEXT NOT NULL,
+
+            description
+                TEXT NOT NULL DEFAULT '',
+
+            site_address
+                TEXT NOT NULL DEFAULT '',
+
+            suburb
+                TEXT NOT NULL DEFAULT '',
+
+            priority
+                TEXT NOT NULL DEFAULT 'Normal',
+
+            status
+                TEXT NOT NULL DEFAULT 'Accepted',
+
+            received_date
+                TEXT NOT NULL,
+
+            scheduled_date
+                TEXT NOT NULL DEFAULT '',
+
+            start_time
+                TEXT NOT NULL DEFAULT '',
+
+            end_time
+                TEXT NOT NULL DEFAULT '',
+
+            estimated_hours
+                REAL NOT NULL DEFAULT 0,
+
+            assigned_to
+                TEXT NOT NULL DEFAULT '',
+
+            notes
+                TEXT NOT NULL DEFAULT '',
+
+            google_event_id
+                TEXT NOT NULL DEFAULT '',
+
+            google_sync_status
+                TEXT NOT NULL DEFAULT 'Not connected',
+
+            accepted_at
+                TEXT NOT NULL DEFAULT '',
+
+            completed_at
+                TEXT NOT NULL DEFAULT '',
+
+            created_at TEXT NOT NULL,
+
+            updated_at TEXT NOT NULL,
+
+            FOREIGN KEY (request_id)
+                REFERENCES job_requests(id)
+                ON DELETE SET NULL
+        );
+
+
+        CREATE INDEX IF NOT EXISTS
+            idx_stock_activity_item
+            ON stock_activity(stock_item_id);
+
+
+        CREATE INDEX IF NOT EXISTS
+            idx_job_requests_status
+            ON job_requests(status);
+
+
+        CREATE INDEX IF NOT EXISTS
+            idx_jobs_status
+            ON jobs(status);
+
+
+        CREATE INDEX IF NOT EXISTS
+            idx_jobs_date
+            ON jobs(scheduled_date);
+        """
+    )
+
+
+    # ------------------------------------------------------
+    # SAFE UPGRADES FOR EXISTING STOCK TABLE
+    # ------------------------------------------------------
+
+    add_column(
+        "stock_items",
+        "specification",
+        "TEXT NOT NULL DEFAULT ''"
+    )
+
+    add_column(
+        "stock_items",
+        "unit_cost",
+        "REAL NOT NULL DEFAULT 0"
+    )
+
+
+    # ------------------------------------------------------
+    # SAFE UPGRADES FOR EXISTING JOBS TABLE
+    # ------------------------------------------------------
+
+    job_upgrades = {
+        "request_id":
+            "INTEGER",
+
+        "google_event_id":
+            "TEXT NOT NULL DEFAULT ''",
+
+        "google_sync_status":
+            "TEXT NOT NULL DEFAULT 'Not connected'",
+
+        "accepted_at":
+            "TEXT NOT NULL DEFAULT ''",
+
+        "completed_at":
+            "TEXT NOT NULL DEFAULT ''",
+    }
+
+
+    for column_name, definition in job_upgrades.items():
+
+        add_column(
+            "jobs",
+            column_name,
+            definition
+        )
+
+
+    db().commit()
+
+
+# ==========================================================
+# GENERAL HELPERS
+# ==========================================================
+
+def now() -> str:
+    """
+    Returns a database-friendly timestamp.
     """
 
     return datetime.now().strftime(
@@ -265,17 +539,14 @@ def current_time():
     )
 
 
-# ==========================================================
-# LOGIN PROTECTION
-# ==========================================================
-
-def login_required(route_function):
+def login_required(view):
     """
-    Prevents access to protected pages before login.
+    Prevents unauthorised users from accessing
+    administrator pages.
     """
 
-    @wraps(route_function)
-    def protected_route(*args, **kwargs):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
 
         if not session.get(
             "admin_logged_in"
@@ -290,537 +561,71 @@ def login_required(route_function):
                 url_for("admin_login")
             )
 
-        return route_function(
+        return view(
             *args,
             **kwargs
         )
 
-    return protected_route
+    return wrapped
 
 
 # ==========================================================
-# STOCK HELPERS
+# CSRF SECURITY
 # ==========================================================
 
-def get_stock_item(item_id):
+def csrf_token() -> str:
     """
-    Retrieves one stock item.
-    """
-
-    return get_database().execute(
-        """
-        SELECT *
-        FROM stock_items
-        WHERE id = ?
-        """,
-        (item_id,)
-    ).fetchone()
-
-
-def validate_stock_form(form):
-    """
-    Validates Add Stock and Edit Stock forms.
+    Creates a CSRF token for forms.
     """
 
-    errors = []
+    if "csrf_token" not in session:
 
-    stock_data = {
-        "item_code": form.get(
-            "item_code",
-            ""
-        ).strip().upper(),
-
-        "item_name": form.get(
-            "item_name",
-            ""
-        ).strip(),
-
-        "category": form.get(
-            "category",
-            ""
-        ).strip(),
-
-        "specification": form.get(
-            "specification",
-            ""
-        ).strip(),
-
-        "unit": form.get(
-            "unit",
-            ""
-        ).strip(),
-
-        "location": form.get(
-            "location",
-            ""
-        ).strip(),
-
-        "notes": form.get(
-            "notes",
-            ""
-        ).strip()
-    }
-
-    try:
-
-        stock_data["quantity"] = int(
-            form.get(
-                "quantity",
-                ""
-            )
+        session[
+            "csrf_token"
+        ] = secrets.token_urlsafe(
+            32
         )
 
-    except (TypeError, ValueError):
+    return session[
+        "csrf_token"
+    ]
 
-        stock_data["quantity"] = 0
 
-        errors.append(
-            "Quantity must be a whole number."
+app.jinja_env.globals[
+    "csrf_token"
+] = csrf_token
+
+
+def validate_csrf():
+    """
+    Validates forms that use CSRF protection.
+    """
+
+    submitted = request.form.get(
+        "csrf_token",
+        ""
+    )
+
+    saved = session.get(
+        "csrf_token",
+        ""
+    )
+
+    if (
+        not submitted
+        or not saved
+        or not hmac.compare_digest(
+            submitted,
+            saved
         )
-
-    try:
-
-        stock_data["minimum_level"] = int(
-            form.get(
-                "minimum_level",
-                ""
-            )
-        )
-
-    except (TypeError, ValueError):
-
-        stock_data["minimum_level"] = 0
-
-        errors.append(
-            "Reorder level must be a whole number."
-        )
-
-    try:
-
-        stock_data["unit_cost"] = round(
-            float(
-                form.get(
-                    "unit_cost",
-                    "0"
-                ) or 0
-            ),
-            2
-        )
-
-    except (TypeError, ValueError):
-
-        stock_data["unit_cost"] = 0.0
-
-        errors.append(
-            "Unit cost must be a valid number."
-        )
-
-    if not re.fullmatch(
-        r"[A-Z0-9_-]{2,20}",
-        stock_data["item_code"]
     ):
 
-        errors.append(
-            "Item code must use 2-20 letters, "
-            "numbers, hyphens or underscores."
-        )
-
-    if not 2 <= len(
-        stock_data["item_name"]
-    ) <= 100:
-
-        errors.append(
-            "Item name must contain 2-100 characters."
-        )
-
-    if stock_data["category"] not in CATEGORIES:
-
-        errors.append(
-            "Select a valid category."
-        )
-
-    if stock_data["unit"] not in UNITS:
-
-        errors.append(
-            "Select a valid measurement unit."
-        )
-
-    if stock_data["quantity"] < 0:
-
-        errors.append(
-            "Quantity cannot be negative."
-        )
-
-    if stock_data["minimum_level"] < 0:
-
-        errors.append(
-            "Reorder level cannot be negative."
-        )
-
-    if stock_data["unit_cost"] < 0:
-
-        errors.append(
-            "Unit cost cannot be negative."
-        )
-
-    if len(
-        stock_data["specification"]
-    ) > 200:
-
-        errors.append(
-            "Specification cannot exceed 200 characters."
-        )
-
-    if len(
-        stock_data["location"]
-    ) > 100:
-
-        errors.append(
-            "Location cannot exceed 100 characters."
-        )
-
-    if len(
-        stock_data["notes"]
-    ) > 500:
-
-        errors.append(
-            "Notes cannot exceed 500 characters."
-        )
-
-    return stock_data, errors
-
-
-def record_stock_activity(
-    item_id,
-    movement_type,
-    amount,
-    previous_quantity,
-    new_quantity,
-    reason
-):
-    """
-    Records a stock quantity change.
-    """
-
-    get_database().execute(
-        """
-        INSERT INTO stock_activity (
-            stock_item_id,
-            movement_type,
-            amount,
-            previous_quantity,
-            new_quantity,
-            reason,
-            created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            item_id,
-            movement_type,
-            amount,
-            previous_quantity,
-            new_quantity,
-            reason,
-            current_time()
-        )
-    )
-
-
-# ==========================================================
-# SEARCH AND FILTER HELPERS
-# ==========================================================
-
-def build_stock_filters(arguments):
-    """
-    Creates safe SQL search and sorting sections.
-    """
-
-    search_text = arguments.get(
-        "search",
-        ""
-    ).strip()
-
-    selected_category = arguments.get(
-        "category",
-        ""
-    ).strip()
-
-    selected_status = arguments.get(
-        "status",
-        ""
-    ).strip()
-
-    selected_sort = arguments.get(
-        "sort",
-        "updated_desc"
-    ).strip()
-
-    conditions = []
-    parameters = []
-
-    if search_text:
-
-        search_value = (
-            "%"
-            + search_text.lower()
-            + "%"
-        )
-
-        conditions.append(
-            """
-            (
-                LOWER(item_code) LIKE ?
-                OR LOWER(item_name) LIKE ?
-                OR LOWER(category) LIKE ?
-                OR LOWER(specification) LIKE ?
-                OR LOWER(location) LIKE ?
-                OR LOWER(notes) LIKE ?
-            )
-            """
-        )
-
-        parameters.extend(
-            [search_value] * 6
-        )
-
-    if selected_category in CATEGORIES:
-
-        conditions.append(
-            "category = ?"
-        )
-
-        parameters.append(
-            selected_category
-        )
-
-    if selected_status == "available":
-
-        conditions.append(
-            "quantity > minimum_level"
-        )
-
-    elif selected_status == "low":
-
-        conditions.append(
-            """
-            quantity > 0
-            AND quantity <= minimum_level
-            """
-        )
-
-    elif selected_status == "out":
-
-        conditions.append(
-            "quantity = 0"
-        )
-
-    if conditions:
-
-        where_section = (
-            " WHERE "
-            + " AND ".join(
-                conditions
+        abort(
+            400,
+            description=(
+                "Invalid or missing security token."
             )
         )
-
-    else:
-
-        where_section = ""
-
-    order_section = SORT_OPTIONS.get(
-        selected_sort,
-        SORT_OPTIONS["updated_desc"]
-    )
-
-    return {
-        "search": search_text,
-        "category": selected_category,
-        "status": selected_status,
-        "sort": selected_sort,
-        "where_section": where_section,
-        "parameters": parameters,
-        "order_section": order_section
-    }
-
-
-# ==========================================================
-# GOOGLE PLACES SUPPLIER SEARCH
-# ==========================================================
-
-def search_google_suppliers(
-    stock_item,
-    suburb
-):
-    """
-    Searches Google Places for possible Melbourne suppliers.
-    """
-
-    api_key = os.environ.get(
-        "GOOGLE_PLACES_API_KEY",
-        ""
-    ).strip()
-
-    if not api_key:
-
-        return [], (
-            "Google Places API is not configured. "
-            "Set GOOGLE_PLACES_API_KEY before starting Flask."
-        )
-
-    supplier_term = SUPPLIER_SEARCH_TERMS.get(
-        stock_item["category"],
-        "carpentry and building materials supplier"
-    )
-
-    item_description = (
-        f'{stock_item["item_name"]} '
-        f'{stock_item["specification"]}'
-    ).strip()[:160]
-
-    text_query = (
-        f"{supplier_term} for {item_description} "
-        f"near {suburb}, Victoria, Australia"
-    )
-
-    request_body = {
-        "textQuery": text_query,
-
-        "pageSize": 8,
-
-        "languageCode": "en",
-
-        "regionCode": "AU",
-
-        "locationRestriction": {
-            "rectangle":
-                MELBOURNE_RECTANGLE
-        }
-    }
-
-    google_request = urllib_request.Request(
-        url=(
-            "https://places.googleapis.com/"
-            "v1/places:searchText"
-        ),
-
-        data=json.dumps(
-            request_body
-        ).encode(
-            "utf-8"
-        ),
-
-        headers={
-            "Content-Type":
-                "application/json",
-
-            "X-Goog-Api-Key":
-                api_key,
-
-            "X-Goog-FieldMask": (
-                "places.id,"
-                "places.displayName,"
-                "places.formattedAddress,"
-                "places.googleMapsUri,"
-                "places.businessStatus,"
-                "places.primaryTypeDisplayName"
-            )
-        },
-
-        method="POST"
-    )
-
-    try:
-
-        with urllib_request.urlopen(
-            google_request,
-            timeout=12
-        ) as response:
-
-            response_data = json.loads(
-                response.read().decode(
-                    "utf-8"
-                )
-            )
-
-    except urllib_error.HTTPError as error:
-
-        error_information = error.read().decode(
-            "utf-8",
-            errors="replace"
-        )
-
-        app.logger.error(
-            "Google Places API error: %s",
-            error_information
-        )
-
-        return [], (
-            "Google rejected the supplier search. "
-            "Check the API key, billing and Places API access."
-        )
-
-    except urllib_error.URLError:
-
-        return [], (
-            "The Google supplier service could not be reached."
-        )
-
-    except json.JSONDecodeError:
-
-        return [], (
-            "Google returned invalid supplier information."
-        )
-
-    suppliers = []
-
-    for place in response_data.get(
-        "places",
-        []
-    ):
-
-        business_status = place.get(
-            "businessStatus",
-            "UNKNOWN"
-        )
-
-        if business_status == "CLOSED_PERMANENTLY":
-            continue
-
-        suppliers.append(
-            {
-                "name": place.get(
-                    "displayName",
-                    {}
-                ).get(
-                    "text",
-                    "Unnamed supplier"
-                ),
-
-                "address": place.get(
-                    "formattedAddress",
-                    "Address unavailable"
-                ),
-
-                "maps_url": place.get(
-                    "googleMapsUri",
-                    ""
-                ),
-
-                "status":
-                    business_status,
-
-                "type": place.get(
-                    "primaryTypeDisplayName",
-                    {}
-                ).get(
-                    "text",
-                    "Supplier"
-                )
-            }
-        )
-
-    return suppliers, None
 
 
 # ==========================================================
@@ -865,10 +670,33 @@ def admin_login():
             ""
         )
 
-        login_is_correct = (
-            username == "admin@timberops.com"
-            and password == "TimberOps2026"
+
+        expected_user = os.environ.get(
+            "TIMBEROPS_ADMIN_EMAIL",
+            "admin@timberops.com"
         )
+
+
+        expected_password = os.environ.get(
+            "TIMBEROPS_ADMIN_PASSWORD",
+            "TimberOps2026"
+        )
+
+
+        login_is_correct = (
+            hmac.compare_digest(
+                username,
+                expected_user
+            )
+
+            and
+
+            hmac.compare_digest(
+                password,
+                expected_password
+            )
+        )
+
 
         if login_is_correct:
 
@@ -878,30 +706,21 @@ def admin_login():
                 "admin_logged_in"
             ] = True
 
+            csrf_token()
+
             return redirect(
                 url_for("home")
             )
+
 
         flash(
             "Invalid email or password.",
             "error"
         )
 
+
     return render_template(
         "admin_login.html"
-    )
-
-
-# ==========================================================
-# HOMEPAGE
-# ==========================================================
-
-@app.route("/home")
-@login_required
-def home():
-
-    return render_template(
-        "homepage.html"
     )
 
 
@@ -941,6 +760,458 @@ def logout():
 
 
 # ==========================================================
+# HOMEPAGE
+# ==========================================================
+
+@app.route("/home")
+@login_required
+def home():
+
+    dashboard = db().execute(
+        """
+        SELECT
+
+            (
+                SELECT COUNT(*)
+                FROM stock_items
+            )
+            AS stock_records,
+
+            (
+                SELECT COUNT(*)
+                FROM job_requests
+                WHERE status = 'Pending'
+            )
+            AS pending_requests,
+
+            (
+                SELECT COUNT(*)
+                FROM jobs
+                WHERE scheduled_date = ?
+                AND status NOT IN (
+                    'Completed',
+                    'Cancelled'
+                )
+            )
+            AS jobs_today
+        """,
+        (
+            date.today().isoformat(),
+        )
+    ).fetchone()
+
+
+    return render_template(
+        "homepage.html",
+        dashboard=dashboard
+    )
+
+
+# ==========================================================
+# STOCK TRACKER HELPERS
+# ==========================================================
+
+def get_stock_item(
+    item_id: int
+):
+
+    return db().execute(
+        """
+        SELECT *
+        FROM stock_items
+        WHERE id = ?
+        """,
+        (
+            item_id,
+        )
+    ).fetchone()
+
+
+def validate_stock_form(
+    form
+):
+
+    errors = []
+
+
+    data = {
+        "item_code":
+            form.get(
+                "item_code",
+                ""
+            ).strip().upper(),
+
+        "item_name":
+            form.get(
+                "item_name",
+                ""
+            ).strip(),
+
+        "category":
+            form.get(
+                "category",
+                ""
+            ).strip(),
+
+        "specification":
+            form.get(
+                "specification",
+                ""
+            ).strip(),
+
+        "unit":
+            form.get(
+                "unit",
+                ""
+            ).strip(),
+
+        "location":
+            form.get(
+                "location",
+                ""
+            ).strip(),
+
+        "notes":
+            form.get(
+                "notes",
+                ""
+            ).strip(),
+    }
+
+
+    try:
+
+        data["quantity"] = int(
+            form.get(
+                "quantity",
+                ""
+            )
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        data["quantity"] = 0
+
+        errors.append(
+            "Quantity must be a whole number."
+        )
+
+
+    try:
+
+        data["minimum_level"] = int(
+            form.get(
+                "minimum_level",
+                ""
+            )
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        data["minimum_level"] = 0
+
+        errors.append(
+            "Reorder level must be a whole number."
+        )
+
+
+    try:
+
+        data["unit_cost"] = round(
+            float(
+                form.get(
+                    "unit_cost",
+                    "0"
+                )
+                or 0
+            ),
+            2
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        data["unit_cost"] = 0.0
+
+        errors.append(
+            "Unit cost must be a valid number."
+        )
+
+
+    if not re.fullmatch(
+        r"[A-Z0-9_-]{2,20}",
+        data["item_code"]
+    ):
+
+        errors.append(
+            "Item code must use 2-20 letters, "
+            "numbers, hyphens or underscores."
+        )
+
+
+    if not 2 <= len(
+        data["item_name"]
+    ) <= 100:
+
+        errors.append(
+            "Item name must contain 2-100 characters."
+        )
+
+
+    if data[
+        "category"
+    ] not in CATEGORIES:
+
+        errors.append(
+            "Select a valid category."
+        )
+
+
+    if data[
+        "unit"
+    ] not in UNITS:
+
+        errors.append(
+            "Select a valid measurement unit."
+        )
+
+
+    if (
+        data["quantity"] < 0
+        or data["minimum_level"] < 0
+        or data["unit_cost"] < 0
+    ):
+
+        errors.append(
+            "Quantity, reorder level and "
+            "unit cost cannot be negative."
+        )
+
+
+    if (
+        len(
+            data["specification"]
+        ) > 200
+
+        or len(
+            data["location"]
+        ) > 100
+
+        or len(
+            data["notes"]
+        ) > 500
+    ):
+
+        errors.append(
+            "One or more stock fields are too long."
+        )
+
+
+    return data, errors
+
+
+def record_stock_activity(
+    item_id,
+    movement_type,
+    amount,
+    previous_quantity,
+    new_quantity,
+    reason
+):
+
+    db().execute(
+        """
+        INSERT INTO stock_activity (
+            stock_item_id,
+            movement_type,
+            amount,
+            previous_quantity,
+            new_quantity,
+            reason,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            item_id,
+            movement_type,
+            amount,
+            previous_quantity,
+            new_quantity,
+            reason,
+            now()
+        )
+    )
+
+
+def build_stock_filters(
+    args
+):
+
+    search = args.get(
+        "search",
+        ""
+    ).strip()
+
+    category = args.get(
+        "category",
+        ""
+    ).strip()
+
+    status = args.get(
+        "status",
+        ""
+    ).strip()
+
+    sort = args.get(
+        "sort",
+        "updated_desc"
+    ).strip()
+
+
+    conditions = []
+
+    params = []
+
+
+    if search:
+
+        pattern = (
+            "%"
+            + search.lower()
+            + "%"
+        )
+
+
+        conditions.append(
+            """
+            (
+                LOWER(item_code) LIKE ?
+                OR LOWER(item_name) LIKE ?
+                OR LOWER(category) LIKE ?
+                OR LOWER(specification) LIKE ?
+                OR LOWER(location) LIKE ?
+                OR LOWER(notes) LIKE ?
+            )
+            """
+        )
+
+
+        params.extend(
+            [pattern] * 6
+        )
+
+
+    if category in CATEGORIES:
+
+        conditions.append(
+            "category = ?"
+        )
+
+        params.append(
+            category
+        )
+
+
+    if status == "available":
+
+        conditions.append(
+            "quantity > minimum_level"
+        )
+
+
+    elif status == "low":
+
+        conditions.append(
+            """
+            quantity > 0
+            AND quantity <= minimum_level
+            """
+        )
+
+
+    elif status == "out":
+
+        conditions.append(
+            "quantity = 0"
+        )
+
+
+    if conditions:
+
+        where_section = (
+            " WHERE "
+            + " AND ".join(
+                conditions
+            )
+        )
+
+    else:
+
+        where_section = ""
+
+
+    return {
+        "search":
+            search,
+
+        "category":
+            category,
+
+        "status":
+            status,
+
+        "sort":
+            sort,
+
+        "where_section":
+            where_section,
+
+        "parameters":
+            params,
+
+        "order_section":
+            SORT_OPTIONS.get(
+                sort,
+                SORT_OPTIONS[
+                    "updated_desc"
+                ]
+            ),
+    }
+
+
+# ==========================================================
+# STOCK SUPPLIER PLACEHOLDER
+# ==========================================================
+
+def search_google_suppliers(
+    _item,
+    _suburb
+):
+    """
+    Google Places API is intentionally disabled
+    until the API integration stage.
+    """
+
+    return (
+        [],
+        (
+            "Supplier API is not connected yet. "
+            "This feature is ready for the "
+            "API integration stage."
+        )
+    )
+
+
+# ==========================================================
 # STOCK TRACKER PAGE
 # ==========================================================
 
@@ -948,24 +1219,26 @@ def logout():
 @login_required
 def stock_tracker():
 
-    database = get_database()
-
     filters = build_stock_filters(
         request.args
     )
 
-    page = request.args.get(
-        "page",
-        1,
-        type=int
+
+    page = max(
+        request.args.get(
+            "page",
+            1,
+            type=int
+        )
+        or 1,
+        1
     )
 
-    if page is None or page < 1:
-        page = 1
 
-    records_per_page = 10
+    per_page = 10
 
-    total_records = database.execute(
+
+    total = db().execute(
         f"""
         SELECT COUNT(*)
         FROM stock_items
@@ -974,22 +1247,25 @@ def stock_tracker():
         filters["parameters"]
     ).fetchone()[0]
 
+
     total_pages = max(
         (
-            total_records
-            + records_per_page
+            total
+            + per_page
             - 1
         )
-        // records_per_page,
+        // per_page,
         1
     )
+
 
     page = min(
         page,
         total_pages
     )
 
-    stock_items = database.execute(
+
+    items = db().execute(
         f"""
         SELECT
             *,
@@ -1030,28 +1306,34 @@ def stock_tracker():
         [
             *filters["parameters"],
 
-            records_per_page,
+            per_page,
 
             (
                 page - 1
-            ) * records_per_page
+            ) * per_page
         ]
     ).fetchall()
 
-    summary = database.execute(
+
+    summary = db().execute(
         """
         SELECT
-            COUNT(*) AS total_items,
+            COUNT(*)
+                AS total_items,
 
             COALESCE(
                 SUM(quantity),
                 0
-            ) AS total_quantity,
+            )
+                AS total_quantity,
 
             COALESCE(
-                SUM(quantity * unit_cost),
+                SUM(
+                    quantity * unit_cost
+                ),
                 0
-            ) AS total_value,
+            )
+                AS total_value,
 
             COALESCE(
                 SUM(
@@ -1059,30 +1341,31 @@ def stock_tracker():
                         WHEN quantity > 0
                         AND quantity <= minimum_level
                             THEN 1
-
                         ELSE 0
                     END
                 ),
                 0
-            ) AS low_items,
+            )
+                AS low_items,
 
             COALESCE(
                 SUM(
                     CASE
                         WHEN quantity = 0
                             THEN 1
-
                         ELSE 0
                     END
                 ),
                 0
-            ) AS out_items
+            )
+                AS out_items
 
         FROM stock_items
         """
     ).fetchone()
 
-    activity = database.execute(
+
+    activity = db().execute(
         """
         SELECT
             stock_activity.*,
@@ -1095,13 +1378,15 @@ def stock_tracker():
             ON stock_items.id
             = stock_activity.stock_item_id
 
-        ORDER BY stock_activity.id DESC
+        ORDER BY
+            stock_activity.id DESC
 
         LIMIT 12
         """
     ).fetchall()
 
-    all_stock_items = database.execute(
+
+    all_items = db().execute(
         """
         SELECT
             id,
@@ -1110,62 +1395,58 @@ def stock_tracker():
 
         FROM stock_items
 
-        ORDER BY item_name COLLATE NOCASE
+        ORDER BY
+            item_name COLLATE NOCASE
         """
     ).fetchall()
 
-    # ------------------------------------------------------
-    # ADD, EDIT AND ADJUST PANELS
-    # ------------------------------------------------------
-
-    show_add_form = (
-        request.args.get(
-            "panel"
-        )
-        == "add"
-    )
-
-    edit_item = None
-    adjust_item = None
 
     edit_item_id = request.args.get(
         "edit",
         type=int
     )
 
+
     adjust_item_id = request.args.get(
         "adjust",
         type=int
     )
 
-    if edit_item_id:
 
-        edit_item = get_stock_item(
+    edit_item = (
+        get_stock_item(
             edit_item_id
         )
+        if edit_item_id
+        else None
+    )
 
-    if adjust_item_id:
 
-        adjust_item = get_stock_item(
+    adjust_item = (
+        get_stock_item(
             adjust_item_id
         )
+        if adjust_item_id
+        else None
+    )
 
-    # ------------------------------------------------------
-    # SUPPLIER SEARCH
-    # ------------------------------------------------------
 
     suppliers = None
+
     supplier_error = None
+
 
     supplier_item_id = request.args.get(
         "supplier_item_id",
         type=int
     )
 
+
     supplier_suburb = request.args.get(
         "supplier_suburb",
         "Melbourne VIC"
     ).strip()
+
 
     if supplier_item_id:
 
@@ -1173,48 +1454,67 @@ def stock_tracker():
             supplier_item_id
         )
 
-        if supplier_item is None:
 
-            supplier_error = (
-                "The selected stock item no longer exists."
+        if supplier_item:
+
+            (
+                suppliers,
+                supplier_error
+            ) = search_google_suppliers(
+                supplier_item,
+                supplier_suburb
             )
+
 
         else:
 
-            suppliers, supplier_error = (
-                search_google_suppliers(
-                    supplier_item,
-                    supplier_suburb
-                    or "Melbourne VIC"
-                )
+            supplier_error = (
+                "The selected stock item "
+                "no longer exists."
             )
+
 
     return render_template(
         "stock_tracker.html",
 
-        items=stock_items,
-        all_items=all_stock_items,
+        items=items,
+
+        all_items=all_items,
+
         activity=activity,
+
         summary=summary,
 
         categories=CATEGORIES,
+
         units=UNITS,
 
         filters=filters,
 
         page=page,
-        total_pages=total_pages,
-        total=total_records,
 
-        show_add=show_add_form,
+        total_pages=total_pages,
+
+        total=total,
+
+        show_add=(
+            request.args.get(
+                "panel"
+            )
+            == "add"
+        ),
+
         edit_item=edit_item,
+
         adjust_item=adjust_item,
 
         suppliers=suppliers,
+
         supplier_error=supplier_error,
 
         supplier_item_id=supplier_item_id,
-        supplier_suburb=supplier_suburb
+
+        supplier_suburb=supplier_suburb,
     )
 
 
@@ -1229,34 +1529,35 @@ def stock_tracker():
 @login_required
 def add_stock():
 
-    stock_data, errors = validate_stock_form(
+    data, errors = validate_stock_form(
         request.form
     )
 
+
     if errors:
 
-        for error_message in errors:
+        for message in errors:
 
             flash(
-                error_message,
+                message,
                 "error"
             )
+
 
         return redirect(
             url_for(
                 "stock_tracker",
                 panel="add"
             )
-            + "#stock-form-panel"
         )
 
-    database = get_database()
 
-    timestamp = current_time()
+    timestamp = now()
+
 
     try:
 
-        cursor = database.execute(
+        cursor = db().execute(
             """
             INSERT INTO stock_items (
                 item_code,
@@ -1272,40 +1573,48 @@ def add_stock():
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (
+                ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?
+            )
             """,
             (
-                stock_data["item_code"],
-                stock_data["item_name"],
-                stock_data["category"],
-                stock_data["specification"],
-                stock_data["quantity"],
-                stock_data["minimum_level"],
-                stock_data["unit"],
-                stock_data["location"],
-                stock_data["unit_cost"],
-                stock_data["notes"],
+                data["item_code"],
+                data["item_name"],
+                data["category"],
+                data["specification"],
+                data["quantity"],
+                data["minimum_level"],
+                data["unit"],
+                data["location"],
+                data["unit_cost"],
+                data["notes"],
                 timestamp,
                 timestamp
             )
         )
 
-        if stock_data["quantity"] > 0:
+
+        if data[
+            "quantity"
+        ] > 0:
 
             record_stock_activity(
                 cursor.lastrowid,
                 "Initial Stock",
-                stock_data["quantity"],
+                data["quantity"],
                 0,
-                stock_data["quantity"],
+                data["quantity"],
                 "Opening quantity"
             )
 
-        database.commit()
+
+        db().commit()
+
 
     except sqlite3.IntegrityError:
 
-        database.rollback()
+        db().rollback()
 
         flash(
             "That item code already exists.",
@@ -1317,16 +1626,17 @@ def add_stock():
                 "stock_tracker",
                 panel="add"
             )
-            + "#stock-form-panel"
         )
+
 
     flash(
         (
-            f'{stock_data["item_name"]} '
+            f'{data["item_name"]} '
             "was added to Current Stock."
         ),
         "success"
     )
+
 
     return redirect(
         url_for("stock_tracker")
@@ -1342,13 +1652,16 @@ def add_stock():
     methods=["POST"]
 )
 @login_required
-def edit_stock(item_id):
+def edit_stock(
+    item_id
+):
 
-    current_item = get_stock_item(
+    existing = get_stock_item(
         item_id
     )
 
-    if current_item is None:
+
+    if existing is None:
 
         flash(
             "Stock item not found.",
@@ -1359,32 +1672,33 @@ def edit_stock(item_id):
             url_for("stock_tracker")
         )
 
-    stock_data, errors = validate_stock_form(
+
+    data, errors = validate_stock_form(
         request.form
     )
 
+
     if errors:
 
-        for error_message in errors:
+        for message in errors:
 
             flash(
-                error_message,
+                message,
                 "error"
             )
+
 
         return redirect(
             url_for(
                 "stock_tracker",
                 edit=item_id
             )
-            + "#stock-form-panel"
         )
 
-    database = get_database()
 
     try:
 
-        database.execute(
+        db().execute(
             """
             UPDATE stock_items
 
@@ -1404,51 +1718,52 @@ def edit_stock(item_id):
             WHERE id = ?
             """,
             (
-                stock_data["item_code"],
-                stock_data["item_name"],
-                stock_data["category"],
-                stock_data["specification"],
-                stock_data["quantity"],
-                stock_data["minimum_level"],
-                stock_data["unit"],
-                stock_data["location"],
-                stock_data["unit_cost"],
-                stock_data["notes"],
-                current_time(),
+                data["item_code"],
+                data["item_name"],
+                data["category"],
+                data["specification"],
+                data["quantity"],
+                data["minimum_level"],
+                data["unit"],
+                data["location"],
+                data["unit_cost"],
+                data["notes"],
+                now(),
                 item_id
             )
         )
 
-        previous_quantity = current_item[
-            "quantity"
-        ]
 
-        new_quantity = stock_data[
-            "quantity"
-        ]
-
-        if previous_quantity != new_quantity:
+        if (
+            existing["quantity"]
+            != data["quantity"]
+        ):
 
             record_stock_activity(
                 item_id,
                 "Edited Quantity",
                 abs(
-                    new_quantity
-                    - previous_quantity
+                    data["quantity"]
+                    - existing["quantity"]
                 ),
-                previous_quantity,
-                new_quantity,
+                existing["quantity"],
+                data["quantity"],
                 "Quantity changed in Edit Item"
             )
 
-        database.commit()
+
+        db().commit()
+
 
     except sqlite3.IntegrityError:
 
-        database.rollback()
+        db().rollback()
 
         flash(
-            "That item code is already being used.",
+            (
+                "That item code is "
+                "already being used."
+            ),
             "error"
         )
 
@@ -1457,16 +1772,17 @@ def edit_stock(item_id):
                 "stock_tracker",
                 edit=item_id
             )
-            + "#stock-form-panel"
         )
+
 
     flash(
         (
-            f'{stock_data["item_name"]} '
+            f'{data["item_name"]} '
             "was updated."
         ),
         "success"
     )
+
 
     return redirect(
         url_for("stock_tracker")
@@ -1482,13 +1798,16 @@ def edit_stock(item_id):
     methods=["POST"]
 )
 @login_required
-def adjust_stock(item_id):
+def adjust_stock(
+    item_id
+):
 
-    stock_item = get_stock_item(
+    item = get_stock_item(
         item_id
     )
 
-    if stock_item is None:
+
+    if item is None:
 
         flash(
             "Stock item not found.",
@@ -1499,15 +1818,18 @@ def adjust_stock(item_id):
             url_for("stock_tracker")
         )
 
+
     movement = request.form.get(
         "movement",
         ""
     ).strip()
 
+
     reason = request.form.get(
         "reason",
         ""
     ).strip()[:300]
+
 
     try:
 
@@ -1518,12 +1840,21 @@ def adjust_stock(item_id):
             )
         )
 
-    except (TypeError, ValueError):
+
+    except (
+        TypeError,
+        ValueError
+    ):
 
         amount = 0
 
+
     if (
-        movement not in {"in", "out"}
+        movement not in {
+            "in",
+            "out"
+        }
+
         or amount <= 0
     ):
 
@@ -1540,30 +1871,33 @@ def adjust_stock(item_id):
                 "stock_tracker",
                 adjust=item_id
             )
-            + "#stock-form-panel"
         )
 
-    previous_quantity = stock_item[
+
+    previous = item[
         "quantity"
     ]
+
 
     if movement == "in":
 
         new_quantity = (
-            previous_quantity
+            previous
             + amount
         )
 
-        movement_name = "Stock In"
+        label = "Stock In"
+
 
     else:
 
         new_quantity = (
-            previous_quantity
+            previous
             - amount
         )
 
-        movement_name = "Stock Out"
+        label = "Stock Out"
+
 
     if new_quantity < 0:
 
@@ -1580,12 +1914,10 @@ def adjust_stock(item_id):
                 "stock_tracker",
                 adjust=item_id
             )
-            + "#stock-form-panel"
         )
 
-    database = get_database()
 
-    database.execute(
+    db().execute(
         """
         UPDATE stock_items
 
@@ -1597,29 +1929,33 @@ def adjust_stock(item_id):
         """,
         (
             new_quantity,
-            current_time(),
+            now(),
             item_id
         )
     )
 
+
     record_stock_activity(
         item_id,
-        movement_name,
+        label,
         amount,
-        previous_quantity,
+        previous,
         new_quantity,
         reason
     )
 
-    database.commit()
+
+    db().commit()
+
 
     flash(
         (
-            f"{movement_name} saved for "
-            f'{stock_item["item_name"]}.'
+            f"{label} saved for "
+            f'{item["item_name"]}.'
         ),
         "success"
     )
+
 
     return redirect(
         url_for("stock_tracker")
@@ -1635,13 +1971,16 @@ def adjust_stock(item_id):
     methods=["POST"]
 )
 @login_required
-def delete_stock(item_id):
+def delete_stock(
+    item_id
+):
 
-    stock_item = get_stock_item(
+    item = get_stock_item(
         item_id
     )
 
-    if stock_item is None:
+
+    if item is None:
 
         flash(
             "Stock item not found.",
@@ -1652,25 +1991,29 @@ def delete_stock(item_id):
             url_for("stock_tracker")
         )
 
-    database = get_database()
 
-    database.execute(
+    db().execute(
         """
         DELETE FROM stock_items
         WHERE id = ?
         """,
-        (item_id,)
+        (
+            item_id,
+        )
     )
 
-    database.commit()
+
+    db().commit()
+
 
     flash(
         (
-            f'{stock_item["item_name"]} '
+            f'{item["item_name"]} '
             "was deleted."
         ),
         "success"
     )
+
 
     return redirect(
         url_for("stock_tracker")
@@ -1678,10 +2021,12 @@ def delete_stock(item_id):
 
 
 # ==========================================================
-# CSV EXPORT
+# STOCK CSV EXPORT
 # ==========================================================
 
-@app.route("/stock-tracker/export.csv")
+@app.route(
+    "/stock-tracker/export.csv"
+)
 @login_required
 def export_csv():
 
@@ -1689,7 +2034,8 @@ def export_csv():
         request.args
     )
 
-    stock_rows = get_database().execute(
+
+    rows = db().execute(
         f"""
         SELECT
             item_code,
@@ -1701,8 +2047,10 @@ def export_csv():
             unit,
             location,
             unit_cost,
+
             quantity * unit_cost
                 AS stock_value,
+
             notes,
             updated_at
 
@@ -1716,13 +2064,16 @@ def export_csv():
         filters["parameters"]
     ).fetchall()
 
+
     output = io.StringIO()
 
-    csv_writer = csv.writer(
+
+    writer = csv.writer(
         output
     )
 
-    csv_writer.writerow(
+
+    writer.writerow(
         [
             "Item Code",
             "Item Name",
@@ -1735,15 +2086,17 @@ def export_csv():
             "Unit Cost AUD",
             "Stock Value AUD",
             "Notes",
-            "Updated"
+            "Updated",
         ]
     )
 
-    for stock_row in stock_rows:
 
-        csv_writer.writerow(
-            list(stock_row)
+    for row in rows:
+
+        writer.writerow(
+            list(row)
         )
+
 
     return Response(
         output.getvalue(),
@@ -1761,892 +2114,491 @@ def export_csv():
 
 
 # ==========================================================
-# APPLICATION STARTUP
+# CUSTOMER JOB REQUEST HELPERS
 # ==========================================================
 
-with app.app_context():
+def valid_date(
+    value: str
+) -> bool:
 
-    initialise_database()
+    try:
 
+        datetime.strptime(
+            value,
+            "%Y-%m-%d"
+        )
 
-    # ==========================================================
-# JOB SCHEDULING OPTIONS
-# ==========================================================
-
-JOB_STATUSES = (
-    "Received",
-    "Scheduled",
-    "In Progress",
-    "Completed",
-    "Cancelled",
-)
+        return True
 
 
-JOB_PRIORITIES = (
-    "Low",
-    "Normal",
-    "High",
-    "Urgent",
-)
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return False
 
 
-JOB_TYPES = (
-    "Custom Furniture",
-    "Cabinetry",
-    "Joinery",
-    "Decking",
-    "Timber Framing",
-    "Door Installation",
-    "Window Installation",
-    "Repairs and Maintenance",
-    "Fit-Out",
-    "Renovation",
-    "On-Site Installation",
-    "Other",
-)
+def valid_time(
+    value: str
+) -> bool:
+
+    try:
+
+        datetime.strptime(
+            value,
+            "%H:%M"
+        )
+
+        return True
 
 
-# ==========================================================
-# JOB SCHEDULING HELPERS
-# ==========================================================
+    except (
+        TypeError,
+        ValueError
+    ):
 
-def get_job_or_404(job_id: int) -> sqlite3.Row:
+        return False
+
+
+def unique_number(
+    prefix: str,
+    table: str,
+    column: str
+) -> str:
     """
-    Returns one job record or displays a 404 error.
+    Generates unique request/job references.
     """
 
-    job = get_db().execute(
+    while True:
+
+        value = (
+            f"{prefix}-"
+            f"{datetime.now():%Y%m%d}-"
+            f"{secrets.token_hex(2).upper()}"
+        )
+
+
+        exists = db().execute(
+            f"""
+            SELECT 1
+            FROM {table}
+            WHERE {column} = ?
+            """,
+            (
+                value,
+            )
+        ).fetchone()
+
+
+        if exists is None:
+
+            return value
+
+
+def validate_request(
+    form
+):
+
+    errors = []
+
+
+    data = {
+        "customer_name":
+            form.get(
+                "customer_name",
+                ""
+            ).strip(),
+
+        "customer_email":
+            form.get(
+                "customer_email",
+                ""
+            ).strip().lower(),
+
+        "customer_phone":
+            form.get(
+                "customer_phone",
+                ""
+            ).strip(),
+
+        "job_title":
+            form.get(
+                "job_title",
+                ""
+            ).strip(),
+
+        "job_type":
+            form.get(
+                "job_type",
+                ""
+            ).strip(),
+
+        "description":
+            form.get(
+                "description",
+                ""
+            ).strip(),
+
+        "site_address":
+            form.get(
+                "site_address",
+                ""
+            ).strip(),
+
+        "suburb":
+            form.get(
+                "suburb",
+                ""
+            ).strip(),
+
+        "preferred_date":
+            form.get(
+                "preferred_date",
+                ""
+            ).strip(),
+
+        "preferred_start_time":
+            form.get(
+                "preferred_start_time",
+                ""
+            ).strip(),
+
+        "preferred_end_time":
+            form.get(
+                "preferred_end_time",
+                ""
+            ).strip(),
+
+        "priority":
+            form.get(
+                "priority",
+                "Normal"
+            ).strip(),
+
+        "notes":
+            form.get(
+                "notes",
+                ""
+            ).strip(),
+    }
+
+
+    if not 2 <= len(
+        data["customer_name"]
+    ) <= 100:
+
+        errors.append(
+            "Enter your full name."
+        )
+
+
+    if not re.fullmatch(
+        r"[^\s@]+@[^\s@]+\.[^\s@]+",
+        data["customer_email"]
+    ):
+
+        errors.append(
+            "Enter a valid email address."
+        )
+
+
+    if not 6 <= len(
+        data["customer_phone"]
+    ) <= 30:
+
+        errors.append(
+            "Enter a valid phone number."
+        )
+
+
+    if not 3 <= len(
+        data["job_title"]
+    ) <= 120:
+
+        errors.append(
+            (
+                "Enter a short title for "
+                "the requested work."
+            )
+        )
+
+
+    if data[
+        "job_type"
+    ] not in JOB_TYPES:
+
+        errors.append(
+            "Select a valid service type."
+        )
+
+
+    if not 10 <= len(
+        data["description"]
+    ) <= 1500:
+
+        errors.append(
+            (
+                "Job description must contain "
+                "10-1500 characters."
+            )
+        )
+
+
+    if (
+        not 5 <= len(
+            data["site_address"]
+        ) <= 180
+
+        or not 2 <= len(
+            data["suburb"]
+        ) <= 80
+    ):
+
+        errors.append(
+            (
+                "Enter a valid job site "
+                "address and suburb/postcode."
+            )
+        )
+
+
+    if data[
+        "preferred_date"
+    ]:
+
+        if (
+            not valid_date(
+                data["preferred_date"]
+            )
+
+            or data[
+                "preferred_date"
+            ] < date.today().isoformat()
+        ):
+
+            errors.append(
+                (
+                    "Preferred date must "
+                    "be today or later."
+                )
+            )
+
+
+    start = data[
+        "preferred_start_time"
+    ]
+
+    end = data[
+        "preferred_end_time"
+    ]
+
+
+    if bool(start) != bool(end):
+
+        errors.append(
+            (
+                "Enter both preferred start "
+                "and end times, or leave both blank."
+            )
+        )
+
+
+    if start:
+
+        if (
+            not valid_time(
+                start
+            )
+
+            or not valid_time(
+                end
+            )
+
+            or end <= start
+        ):
+
+            errors.append(
+                (
+                    "Enter a valid preferred "
+                    "time range."
+                )
+            )
+
+
+    if data[
+        "priority"
+    ] not in JOB_PRIORITIES:
+
+        errors.append(
+            "Select a valid urgency level."
+        )
+
+
+    if len(
+        data["notes"]
+    ) > 700:
+
+        errors.append(
+            (
+                "Additional notes cannot "
+                "exceed 700 characters."
+            )
+        )
+
+
+    if not form.get(
+        "privacy_acknowledgement"
+    ):
+
+        errors.append(
+            (
+                "Please acknowledge the privacy "
+                "notice before submitting."
+            )
+        )
+
+
+    return data, errors
+
+
+def request_or_404(
+    request_id: int
+):
+
+    row = db().execute(
+        """
+        SELECT *
+        FROM job_requests
+        WHERE id = ?
+        """,
+        (
+            request_id,
+        )
+    ).fetchone()
+
+
+    if row is None:
+
+        abort(
+            404,
+            description=(
+                "The selected job request "
+                "does not exist."
+            )
+        )
+
+
+    return row
+
+
+def job_or_404(
+    job_id: int
+):
+
+    row = db().execute(
         """
         SELECT *
         FROM jobs
         WHERE id = ?
         """,
-        (job_id,),
+        (
+            job_id,
+        )
     ).fetchone()
 
-    if job is None:
+
+    if row is None:
+
         abort(
             404,
-            description="The selected job does not exist.",
-        )
-
-    return job
-
-
-def valid_date_text(value: str) -> bool:
-    """
-    Checks that a string uses the YYYY-MM-DD date format.
-    """
-
-    try:
-        datetime.strptime(
-            value,
-            "%Y-%m-%d",
-        )
-
-        return True
-
-    except ValueError:
-        return False
-
-
-def valid_time_text(value: str) -> bool:
-    """
-    Checks that a string uses the HH:MM time format.
-    """
-
-    try:
-        datetime.strptime(
-            value,
-            "%H:%M",
-        )
-
-        return True
-
-    except ValueError:
-        return False
-
-
-def validate_job_form(
-    form: Any,
-) -> tuple[dict[str, Any], list[str]]:
-    """
-    Validates information submitted through the Add Job
-    and Edit Job forms.
-    """
-
-    errors: list[str] = []
-
-    job_number = form.get(
-        "job_number",
-        "",
-    ).strip().upper()
-
-    customer_name = form.get(
-        "customer_name",
-        "",
-    ).strip()
-
-    customer_phone = form.get(
-        "customer_phone",
-        "",
-    ).strip()
-
-    customer_email = form.get(
-        "customer_email",
-        "",
-    ).strip()
-
-    job_title = form.get(
-        "job_title",
-        "",
-    ).strip()
-
-    job_type = form.get(
-        "job_type",
-        "",
-    ).strip()
-
-    description = form.get(
-        "description",
-        "",
-    ).strip()
-
-    site_address = form.get(
-        "site_address",
-        "",
-    ).strip()
-
-    suburb = form.get(
-        "suburb",
-        "",
-    ).strip()
-
-    priority = form.get(
-        "priority",
-        "Normal",
-    ).strip()
-
-    status = form.get(
-        "status",
-        "Received",
-    ).strip()
-
-    received_date = form.get(
-        "received_date",
-        "",
-    ).strip()
-
-    scheduled_date = form.get(
-        "scheduled_date",
-        "",
-    ).strip()
-
-    start_time = form.get(
-        "start_time",
-        "",
-    ).strip()
-
-    end_time = form.get(
-        "end_time",
-        "",
-    ).strip()
-
-    assigned_to = form.get(
-        "assigned_to",
-        "",
-    ).strip()
-
-    notes = form.get(
-        "notes",
-        "",
-    ).strip()
-
-    try:
-        estimated_hours = round(
-            float(
-                form.get(
-                    "estimated_hours",
-                    "0",
-                )
-                or 0
-            ),
-            2,
-        )
-
-    except (TypeError, ValueError):
-        estimated_hours = 0
-
-        errors.append(
-            "Estimated hours must be a valid number.",
-        )
-
-    if not re.fullmatch(
-        r"[A-Z0-9_-]{2,20}",
-        job_number,
-    ):
-        errors.append(
-            "Job number must be 2-20 characters using "
-            "letters, numbers, hyphens or underscores.",
-        )
-
-    if not 2 <= len(customer_name) <= 100:
-        errors.append(
-            "Customer name must contain 2-100 characters.",
-        )
-
-    if not 2 <= len(job_title) <= 120:
-        errors.append(
-            "Job title must contain 2-120 characters.",
-        )
-
-    if job_type not in JOB_TYPES:
-        errors.append(
-            "Select a valid job type.",
-        )
-
-    if priority not in JOB_PRIORITIES:
-        errors.append(
-            "Select a valid job priority.",
-        )
-
-    if status not in JOB_STATUSES:
-        errors.append(
-            "Select a valid job status.",
-        )
-
-    if not received_date or not valid_date_text(
-        received_date,
-    ):
-        errors.append(
-            "Enter a valid received date.",
-        )
-
-    if scheduled_date and not valid_date_text(
-        scheduled_date,
-    ):
-        errors.append(
-            "Enter a valid scheduled date.",
-        )
-
-    if bool(start_time) != bool(end_time):
-        errors.append(
-            "Enter both a start time and an end time.",
-        )
-
-    if start_time and not valid_time_text(
-        start_time,
-    ):
-        errors.append(
-            "Enter a valid start time.",
-        )
-
-    if end_time and not valid_time_text(
-        end_time,
-    ):
-        errors.append(
-            "Enter a valid end time.",
-        )
-
-    if (
-        start_time
-        and end_time
-        and valid_time_text(start_time)
-        and valid_time_text(end_time)
-        and end_time <= start_time
-    ):
-        errors.append(
-            "The end time must be later than the start time.",
-        )
-
-    statuses_requiring_schedule = {
-        "Scheduled",
-        "In Progress",
-        "Completed",
-    }
-
-    if (
-        status in statuses_requiring_schedule
-        and not scheduled_date
-    ):
-        errors.append(
-            f"A scheduled date is required when the status is {status}.",
-        )
-
-    # Automatically marks a received job as scheduled when
-    # scheduling information has been entered.
-    if scheduled_date and status == "Received":
-        status = "Scheduled"
-
-    if estimated_hours < 0:
-        errors.append(
-            "Estimated hours cannot be negative.",
-        )
-
-    if estimated_hours > 1000:
-        errors.append(
-            "Estimated hours is too large.",
-        )
-
-    if len(customer_phone) > 30:
-        errors.append(
-            "Customer phone cannot exceed 30 characters.",
-        )
-
-    if len(customer_email) > 120:
-        errors.append(
-            "Customer email cannot exceed 120 characters.",
-        )
-
-    if len(description) > 1000:
-        errors.append(
-            "Job description cannot exceed 1000 characters.",
-        )
-
-    if len(site_address) > 180:
-        errors.append(
-            "Site address cannot exceed 180 characters.",
-        )
-
-    if len(suburb) > 80:
-        errors.append(
-            "Suburb cannot exceed 80 characters.",
-        )
-
-    if len(assigned_to) > 100:
-        errors.append(
-            "Assigned worker cannot exceed 100 characters.",
-        )
-
-    if len(notes) > 700:
-        errors.append(
-            "Job notes cannot exceed 700 characters.",
-        )
-
-    job_data = {
-        "job_number": job_number,
-        "customer_name": customer_name,
-        "customer_phone": customer_phone,
-        "customer_email": customer_email,
-        "job_title": job_title,
-        "job_type": job_type,
-        "description": description,
-        "site_address": site_address,
-        "suburb": suburb,
-        "priority": priority,
-        "status": status,
-        "received_date": received_date,
-        "scheduled_date": scheduled_date,
-        "start_time": start_time,
-        "end_time": end_time,
-        "estimated_hours": estimated_hours,
-        "assigned_to": assigned_to,
-        "notes": notes,
-    }
-
-    return job_data, errors
-
-
-def build_job_filters(
-    arguments: Any,
-) -> tuple[
-    str,
-    list[Any],
-    str,
-    str,
-    str,
-]:
-    """
-    Creates a safe SQL filtering section for job records.
-    """
-
-    search_text = arguments.get(
-        "q",
-        "",
-    ).strip()
-
-    selected_status = arguments.get(
-        "status",
-        "",
-    ).strip()
-
-    selected_priority = arguments.get(
-        "priority",
-        "",
-    ).strip()
-
-    where_clauses: list[str] = []
-    parameters: list[Any] = []
-
-    if search_text:
-        search_pattern = (
-            "%"
-            + search_text.lower()
-            + "%"
-        )
-
-        where_clauses.append(
-            """
-            (
-                LOWER(job_number) LIKE ?
-                OR LOWER(customer_name) LIKE ?
-                OR LOWER(job_title) LIKE ?
-                OR LOWER(job_type) LIKE ?
-                OR LOWER(suburb) LIKE ?
-                OR LOWER(assigned_to) LIKE ?
-            )
-            """
-        )
-
-        parameters.extend(
-            [search_pattern] * 6,
-        )
-
-    if selected_status in JOB_STATUSES:
-        where_clauses.append(
-            "status = ?",
-        )
-
-        parameters.append(
-            selected_status,
-        )
-
-    if selected_priority in JOB_PRIORITIES:
-        where_clauses.append(
-            "priority = ?",
-        )
-
-        parameters.append(
-            selected_priority,
-        )
-
-    where_sql = ""
-
-    if where_clauses:
-        where_sql = (
-            " WHERE "
-            + " AND ".join(
-                where_clauses,
+            description=(
+                "The selected job does not exist."
             )
         )
 
-    return (
-        where_sql,
-        parameters,
-        search_text,
-        selected_status,
-        selected_priority,
-    )
+
+    return row
 
 
 # ==========================================================
-# JOB SCHEDULING PAGE
-# ==========================================================
-
-@app.route("/job-scheduling")
-@login_required
-def job_scheduling() -> str:
-    """
-    Displays the monthly calendar, received-jobs queue,
-    upcoming jobs and complete job list.
-    """
-
-    database = get_db()
-
-    today = date.today()
-
-    selected_month = request.args.get(
-        "month",
-        today.month,
-        type=int,
-    )
-
-    selected_year = request.args.get(
-        "year",
-        today.year,
-        type=int,
-    )
-
-    if selected_month not in range(1, 13):
-        selected_month = today.month
-
-    if selected_year not in range(2000, 2101):
-        selected_year = today.year
-
-    (
-        where_sql,
-        filter_parameters,
-        search_text,
-        selected_status,
-        selected_priority,
-    ) = build_job_filters(
-        request.args,
-    )
-
-    month_start = date(
-        selected_year,
-        selected_month,
-        1,
-    )
-
-    previous_month_date = (
-        month_start
-        - timedelta(days=1)
-    )
-
-    next_month_date = (
-        month_start.replace(day=28)
-        + timedelta(days=4)
-    ).replace(day=1)
-
-    calendar_builder = calendar_module.Calendar(
-        firstweekday=0,
-    )
-
-    raw_calendar_weeks = calendar_builder.monthdatescalendar(
-        selected_year,
-        selected_month,
-    )
-
-    visible_start = raw_calendar_weeks[0][0]
-    visible_end = raw_calendar_weeks[-1][-1]
-
-    calendar_where_clauses: list[str] = [
-        "scheduled_date BETWEEN ? AND ?",
-    ]
-
-    calendar_parameters: list[Any] = [
-        visible_start.isoformat(),
-        visible_end.isoformat(),
-    ]
-
-    if where_sql:
-        filter_condition = where_sql.replace(
-            " WHERE ",
-            "",
-            1,
-        )
-
-        calendar_where_clauses.append(
-            filter_condition,
-        )
-
-        calendar_parameters.extend(
-            filter_parameters,
-        )
-
-    calendar_jobs = database.execute(
-        f"""
-        SELECT *
-        FROM jobs
-        WHERE {" AND ".join(calendar_where_clauses)}
-        ORDER BY
-            scheduled_date ASC,
-            start_time ASC,
-            priority DESC,
-            id ASC
-        """,
-        calendar_parameters,
-    ).fetchall()
-
-    jobs_by_date: dict[str, list[sqlite3.Row]] = {}
-
-    for job in calendar_jobs:
-        scheduled_date = job[
-            "scheduled_date"
-        ]
-
-        jobs_by_date.setdefault(
-            scheduled_date,
-            [],
-        ).append(
-            job,
-        )
-
-    calendar_weeks: list[list[dict[str, Any]]] = []
-
-    for week in raw_calendar_weeks:
-        calendar_week: list[dict[str, Any]] = []
-
-        for calendar_date in week:
-            date_text = calendar_date.isoformat()
-
-            calendar_week.append(
-                {
-                    "iso": date_text,
-                    "day_number": calendar_date.day,
-                    "in_month": (
-                        calendar_date.month
-                        == selected_month
-                    ),
-                    "is_today": (
-                        calendar_date
-                        == today
-                    ),
-                    "jobs": jobs_by_date.get(
-                        date_text,
-                        [],
-                    ),
-                },
-            )
-
-        calendar_weeks.append(
-            calendar_week,
-        )
-
-    all_filtered_jobs = database.execute(
-        f"""
-        SELECT *
-        FROM jobs
-        {where_sql}
-        ORDER BY
-            CASE
-                WHEN scheduled_date = '' THEN 1
-                ELSE 0
-            END,
-            scheduled_date ASC,
-            start_time ASC,
-            received_date DESC,
-            id DESC
-        LIMIT 100
-        """,
-        filter_parameters,
-    ).fetchall()
-
-    summary = database.execute(
-        """
-        SELECT
-            COUNT(*) AS total_jobs,
-
-            SUM(
-                CASE
-                    WHEN status = 'Received'
-                    THEN 1 ELSE 0
-                END
-            ) AS received_jobs,
-
-            SUM(
-                CASE
-                    WHEN status = 'Scheduled'
-                    THEN 1 ELSE 0
-                END
-            ) AS scheduled_jobs,
-
-            SUM(
-                CASE
-                    WHEN status = 'In Progress'
-                    THEN 1 ELSE 0
-                END
-            ) AS in_progress_jobs,
-
-            SUM(
-                CASE
-                    WHEN status = 'Completed'
-                    THEN 1 ELSE 0
-                END
-            ) AS completed_jobs,
-
-            SUM(
-                CASE
-                    WHEN scheduled_date = ?
-                    AND status NOT IN (
-                        'Completed',
-                        'Cancelled'
-                    )
-                    THEN 1 ELSE 0
-                END
-            ) AS jobs_today
-
-        FROM jobs
-        """,
-        (
-            today.isoformat(),
-        ),
-    ).fetchone()
-
-    unscheduled_jobs = database.execute(
-        """
-        SELECT *
-        FROM jobs
-
-        WHERE scheduled_date = ''
-        AND status NOT IN (
-            'Completed',
-            'Cancelled'
-        )
-
-        ORDER BY
-            CASE priority
-                WHEN 'Urgent' THEN 1
-                WHEN 'High' THEN 2
-                WHEN 'Normal' THEN 3
-                ELSE 4
-            END,
-            received_date ASC,
-            id ASC
-
-        LIMIT 8
-        """
-    ).fetchall()
-
-    upcoming_end = (
-        today
-        + timedelta(days=30)
-    ).isoformat()
-
-    upcoming_jobs = database.execute(
-        """
-        SELECT *
-        FROM jobs
-
-        WHERE scheduled_date BETWEEN ? AND ?
-        AND status NOT IN (
-            'Completed',
-            'Cancelled'
-        )
-
-        ORDER BY
-            scheduled_date ASC,
-            start_time ASC
-
-        LIMIT 8
-        """,
-        (
-            today.isoformat(),
-            upcoming_end,
-        ),
-    ).fetchall()
-
-    show_add_form = (
-        request.args.get(
-            "panel",
-            "",
-        )
-        == "add"
-    )
-
-    edit_job_record = None
-    schedule_job_record = None
-
-    edit_job_id = request.args.get(
-        "edit",
-        type=int,
-    )
-
-    schedule_job_id = request.args.get(
-        "schedule",
-        type=int,
-    )
-
-    if edit_job_id:
-        edit_job_record = get_job_or_404(
-            edit_job_id,
-        )
-
-    if schedule_job_id:
-        schedule_job_record = get_job_or_404(
-            schedule_job_id,
-        )
-
-    return render_template(
-        "job_scheduling.html",
-
-        calendar_weeks=calendar_weeks,
-        month_name=calendar_module.month_name[
-            selected_month
-        ],
-
-        selected_month=selected_month,
-        selected_year=selected_year,
-
-        previous_month=previous_month_date.month,
-        previous_year=previous_month_date.year,
-
-        next_month=next_month_date.month,
-        next_year=next_month_date.year,
-
-        today=today,
-        today_iso=today.isoformat(),
-
-        jobs=all_filtered_jobs,
-        unscheduled_jobs=unscheduled_jobs,
-        upcoming_jobs=upcoming_jobs,
-        summary=summary,
-
-        job_statuses=JOB_STATUSES,
-        job_priorities=JOB_PRIORITIES,
-        job_types=JOB_TYPES,
-
-        search_text=search_text,
-        selected_status=selected_status,
-        selected_priority=selected_priority,
-
-        show_add_form=show_add_form,
-        edit_job=edit_job_record,
-        schedule_job=schedule_job_record,
-    )
-
-
-# ==========================================================
-# ADD JOB
+# PUBLIC CUSTOMER JOB REQUEST PAGE
 # ==========================================================
 
 @app.route(
-    "/job-scheduling/add",
-    methods=["POST"],
+    "/job-request",
+    methods=["GET", "POST"]
 )
-@login_required
-def add_job() -> Response:
-    """
-    Creates a new received or scheduled job.
-    """
+def job_request():
 
-    validate_csrf()
+    if request.method == "POST":
 
-    job_data, errors = validate_job_form(
-        request.form,
-    )
+        validate_csrf()
 
-    if errors:
-        for error in errors:
-            flash(
-                error,
-                "error",
-            )
 
-        return redirect(
-            url_for(
-                "job_scheduling",
-                panel="add",
-            )
-            + "#job-form-panel"
+        data, errors = validate_request(
+            request.form
         )
 
-    database = get_db()
-    timestamp = current_time()
 
-    try:
-        database.execute(
+        if errors:
+
+            for message in errors:
+
+                flash(
+                    message,
+                    "error"
+                )
+
+
+            return render_template(
+                "job_request.html",
+
+                job_types=JOB_TYPES,
+
+                priorities=JOB_PRIORITIES,
+
+                today=date.today().isoformat(),
+
+                form_data=request.form,
+
+                status_result=None,
+
+                submitted_request=None,
+            )
+
+
+        reference = unique_number(
+            "REQ",
+            "job_requests",
+            "request_number"
+        )
+
+
+        timestamp = now()
+
+
+        db().execute(
             """
-            INSERT INTO jobs (
-                job_number,
+            INSERT INTO job_requests (
+                request_number,
                 customer_name,
-                customer_phone,
                 customer_email,
+                customer_phone,
                 job_title,
                 job_type,
                 description,
                 site_address,
                 suburb,
+                preferred_date,
+                preferred_start_time,
+                preferred_end_time,
                 priority,
-                status,
-                received_date,
-                scheduled_date,
-                start_time,
-                end_time,
-                estimated_hours,
-                assigned_to,
                 notes,
+                status,
+                admin_note,
+                job_id,
+                decision_at,
                 created_at,
                 updated_at
             )
@@ -2658,281 +2610,1081 @@ def add_job() -> Response:
             )
             """,
             (
-                job_data["job_number"],
-                job_data["customer_name"],
-                job_data["customer_phone"],
-                job_data["customer_email"],
-                job_data["job_title"],
-                job_data["job_type"],
-                job_data["description"],
-                job_data["site_address"],
-                job_data["suburb"],
-                job_data["priority"],
-                job_data["status"],
-                job_data["received_date"],
-                job_data["scheduled_date"],
-                job_data["start_time"],
-                job_data["end_time"],
-                job_data["estimated_hours"],
-                job_data["assigned_to"],
-                job_data["notes"],
+                reference,
+                data["customer_name"],
+                data["customer_email"],
+                data["customer_phone"],
+                data["job_title"],
+                data["job_type"],
+                data["description"],
+                data["site_address"],
+                data["suburb"],
+                data["preferred_date"],
+                data["preferred_start_time"],
+                data["preferred_end_time"],
+                data["priority"],
+                data["notes"],
+                "Pending",
+                "",
+                None,
+                "",
                 timestamp,
-                timestamp,
-            ),
+                timestamp
+            )
         )
 
-        database.commit()
 
-    except sqlite3.IntegrityError:
-        database.rollback()
+        db().commit()
 
-        flash(
-            "That job number already exists. "
-            "Enter a unique job number.",
-            "error",
-        )
 
         return redirect(
             url_for(
-                "job_scheduling",
-                panel="add",
+                "job_request",
+                submitted=reference
             )
-            + "#job-form-panel"
         )
 
-    flash(
-        f"Job {job_data['job_number']} was added successfully.",
-        "success",
-    )
 
-    return redirect(
-        url_for("job_scheduling"),
+    submitted_request = None
+
+
+    submitted_reference = request.args.get(
+        "submitted",
+        ""
+    ).strip().upper()
+
+
+    if submitted_reference:
+
+        submitted_request = db().execute(
+            """
+            SELECT
+                request_number,
+                job_title,
+                job_type,
+                preferred_date,
+                status
+
+            FROM job_requests
+
+            WHERE request_number = ?
+            """,
+            (
+                submitted_reference,
+            )
+        ).fetchone()
+
+
+    return render_template(
+        "job_request.html",
+
+        job_types=JOB_TYPES,
+
+        priorities=JOB_PRIORITIES,
+
+        today=date.today().isoformat(),
+
+        form_data={},
+
+        status_result=None,
+
+        submitted_request=submitted_request,
     )
 
 
 # ==========================================================
-# EDIT JOB
+# CUSTOMER REQUEST STATUS LOOKUP
 # ==========================================================
 
 @app.route(
-    "/job-scheduling/<int:job_id>/edit",
-    methods=["POST"],
+    "/job-request/status",
+    methods=["POST"]
 )
-@login_required
-def edit_job(job_id: int) -> Response:
-    """
-    Updates an existing job.
-    """
+def job_request_status():
 
     validate_csrf()
 
-    get_job_or_404(
-        job_id,
-    )
 
-    job_data, errors = validate_job_form(
-        request.form,
-    )
+    reference = request.form.get(
+        "request_number",
+        ""
+    ).strip().upper()
 
-    if errors:
-        for error in errors:
-            flash(
-                error,
-                "error",
-            )
 
-        return redirect(
-            url_for(
-                "job_scheduling",
-                edit=job_id,
-            )
-            + "#job-form-panel"
+    email = request.form.get(
+        "status_email",
+        ""
+    ).strip().lower()
+
+
+    result = db().execute(
+        """
+        SELECT
+            request_number,
+            job_title,
+            job_type,
+            status,
+            preferred_date,
+            admin_note,
+            updated_at
+
+        FROM job_requests
+
+        WHERE request_number = ?
+        AND LOWER(customer_email) = ?
+        """,
+        (
+            reference,
+            email
         )
+    ).fetchone()
 
-    database = get_db()
 
-    try:
-        database.execute(
-            """
-            UPDATE jobs
-
-            SET
-                job_number = ?,
-                customer_name = ?,
-                customer_phone = ?,
-                customer_email = ?,
-                job_title = ?,
-                job_type = ?,
-                description = ?,
-                site_address = ?,
-                suburb = ?,
-                priority = ?,
-                status = ?,
-                received_date = ?,
-                scheduled_date = ?,
-                start_time = ?,
-                end_time = ?,
-                estimated_hours = ?,
-                assigned_to = ?,
-                notes = ?,
-                updated_at = ?
-
-            WHERE id = ?
-            """,
-            (
-                job_data["job_number"],
-                job_data["customer_name"],
-                job_data["customer_phone"],
-                job_data["customer_email"],
-                job_data["job_title"],
-                job_data["job_type"],
-                job_data["description"],
-                job_data["site_address"],
-                job_data["suburb"],
-                job_data["priority"],
-                job_data["status"],
-                job_data["received_date"],
-                job_data["scheduled_date"],
-                job_data["start_time"],
-                job_data["end_time"],
-                job_data["estimated_hours"],
-                job_data["assigned_to"],
-                job_data["notes"],
-                current_time(),
-                job_id,
-            ),
-        )
-
-        database.commit()
-
-    except sqlite3.IntegrityError:
-        database.rollback()
+    if result is None:
 
         flash(
-            "That job number is already being used.",
-            "error",
+            (
+                "No matching request was found. "
+                "Check the reference number and email."
+            ),
+            "error"
         )
 
-        return redirect(
-            url_for(
-                "job_scheduling",
-                edit=job_id,
-            )
-            + "#job-form-panel"
-        )
 
-    flash(
-        f"Job {job_data['job_number']} was updated.",
-        "success",
-    )
+    return render_template(
+        "job_request.html",
 
-    return redirect(
-        url_for("job_scheduling"),
+        job_types=JOB_TYPES,
+
+        priorities=JOB_PRIORITIES,
+
+        today=date.today().isoformat(),
+
+        form_data={},
+
+        status_result=result,
+
+        submitted_request=None,
     )
 
 
 # ==========================================================
-# SCHEDULE A RECEIVED JOB
+# CALENDAR BUILDER
+# ==========================================================
+
+def calendar_weeks(
+    year: int,
+    month: int
+):
+
+    calendar_builder = calendar.Calendar(
+        firstweekday=0
+    )
+
+
+    raw_weeks = calendar_builder.monthdatescalendar(
+        year,
+        month
+    )
+
+
+    visible_start = (
+        raw_weeks[0][0].isoformat()
+    )
+
+
+    visible_end = (
+        raw_weeks[-1][-1].isoformat()
+    )
+
+
+    scheduled_jobs = db().execute(
+        """
+        SELECT *
+        FROM jobs
+
+        WHERE scheduled_date
+            BETWEEN ? AND ?
+
+        AND status <> 'Cancelled'
+
+        ORDER BY
+            scheduled_date,
+            start_time,
+            id
+        """,
+        (
+            visible_start,
+            visible_end
+        )
+    ).fetchall()
+
+
+    jobs_by_date: dict[
+        str,
+        list[sqlite3.Row]
+    ] = {}
+
+
+    for job in scheduled_jobs:
+
+        jobs_by_date.setdefault(
+            job["scheduled_date"],
+            []
+        ).append(
+            job
+        )
+
+
+    today = date.today()
+
+
+    return [
+        [
+            {
+                "iso":
+                    calendar_date.isoformat(),
+
+                "day_number":
+                    calendar_date.day,
+
+                "in_month":
+                    calendar_date.month
+                    == month,
+
+                "is_today":
+                    calendar_date
+                    == today,
+
+                "jobs":
+                    jobs_by_date.get(
+                        calendar_date.isoformat(),
+                        []
+                    ),
+            }
+
+            for calendar_date in week
+        ]
+
+        for week in raw_weeks
+    ]
+
+
+# ==========================================================
+# SCHEDULE CONFLICT CHECK
+# ==========================================================
+
+def schedule_conflict(
+    job_id: int,
+    scheduled_date: str,
+    start: str,
+    end: str,
+    worker: str
+):
+
+    if (
+        not start
+        or not end
+    ):
+
+        return None
+
+
+    return db().execute(
+        """
+        SELECT
+            job_number,
+            job_title,
+            start_time,
+            end_time,
+            assigned_to
+
+        FROM jobs
+
+        WHERE id <> ?
+
+        AND scheduled_date = ?
+
+        AND status NOT IN (
+            'Completed',
+            'Cancelled'
+        )
+
+        AND start_time <> ''
+
+        AND end_time <> ''
+
+        AND start_time < ?
+
+        AND end_time > ?
+
+        AND (
+            ? = ''
+            OR assigned_to = ''
+            OR LOWER(assigned_to)
+                = LOWER(?)
+        )
+
+        LIMIT 1
+        """,
+        (
+            job_id,
+            scheduled_date,
+            end,
+            start,
+            worker,
+            worker
+        )
+    ).fetchone()
+
+
+# ==========================================================
+# ADMIN JOB SCHEDULING PAGE
+# ==========================================================
+
+@app.route("/job-scheduling")
+@login_required
+def job_scheduling():
+
+    today = date.today()
+
+
+    selected_month = request.args.get(
+        "month",
+        today.month,
+        type=int
+    ) or today.month
+
+
+    selected_year = request.args.get(
+        "year",
+        today.year,
+        type=int
+    ) or today.year
+
+
+    if not 1 <= selected_month <= 12:
+
+        selected_month = today.month
+
+
+    if not 2000 <= selected_year <= 2100:
+
+        selected_year = today.year
+
+
+    month_start = date(
+        selected_year,
+        selected_month,
+        1
+    )
+
+
+    previous_month_date = (
+        month_start
+        - timedelta(
+            days=1
+        )
+    )
+
+
+    next_month_date = (
+        month_start.replace(
+            day=28
+        )
+        + timedelta(
+            days=4
+        )
+    ).replace(
+        day=1
+    )
+
+
+    # ------------------------------------------------------
+    # PENDING CUSTOMER REQUESTS
+    # ------------------------------------------------------
+
+    pending_requests = db().execute(
+        """
+        SELECT *
+        FROM job_requests
+
+        WHERE status = 'Pending'
+
+        ORDER BY
+
+            CASE priority
+
+                WHEN 'Urgent'
+                    THEN 1
+
+                WHEN 'High'
+                    THEN 2
+
+                WHEN 'Normal'
+                    THEN 3
+
+                ELSE 4
+
+            END,
+
+            created_at ASC
+        """
+    ).fetchall()
+
+
+    # ------------------------------------------------------
+    # ACCEPTED BUT NOT SCHEDULED
+    # ------------------------------------------------------
+
+    accepted_unscheduled = db().execute(
+        """
+        SELECT *
+        FROM jobs
+
+        WHERE scheduled_date = ''
+
+        AND status IN (
+            'Received',
+            'Accepted'
+        )
+
+        ORDER BY
+
+            CASE priority
+
+                WHEN 'Urgent'
+                    THEN 1
+
+                WHEN 'High'
+                    THEN 2
+
+                WHEN 'Normal'
+                    THEN 3
+
+                ELSE 4
+
+            END,
+
+            created_at ASC
+        """
+    ).fetchall()
+
+
+    # ------------------------------------------------------
+    # ALL JOBS
+    # ------------------------------------------------------
+
+    jobs = db().execute(
+        """
+        SELECT *
+        FROM jobs
+
+        ORDER BY
+            updated_at DESC,
+            id DESC
+
+        LIMIT 100
+        """
+    ).fetchall()
+
+
+    # ------------------------------------------------------
+    # SUMMARY
+    # ------------------------------------------------------
+
+    summary = db().execute(
+        """
+        SELECT
+
+            (
+                SELECT COUNT(*)
+                FROM job_requests
+                WHERE status = 'Pending'
+            )
+            AS pending_requests,
+
+
+            (
+                SELECT COUNT(*)
+                FROM jobs
+
+                WHERE scheduled_date = ''
+
+                AND status IN (
+                    'Received',
+                    'Accepted'
+                )
+            )
+            AS awaiting_schedule,
+
+
+            (
+                SELECT COUNT(*)
+                FROM jobs
+                WHERE status = 'Scheduled'
+            )
+            AS scheduled_jobs,
+
+
+            (
+                SELECT COUNT(*)
+                FROM jobs
+                WHERE status = 'In Progress'
+            )
+            AS in_progress_jobs,
+
+
+            (
+                SELECT COUNT(*)
+                FROM jobs
+
+                WHERE scheduled_date = ?
+
+                AND status NOT IN (
+                    'Completed',
+                    'Cancelled'
+                )
+            )
+            AS jobs_today,
+
+
+            (
+                SELECT COUNT(*)
+                FROM jobs
+                WHERE status = 'Completed'
+            )
+            AS completed_jobs
+        """,
+        (
+            today.isoformat(),
+        )
+    ).fetchone()
+
+
+    return render_template(
+        "job_scheduling.html",
+
+        calendar_weeks=calendar_weeks(
+            selected_year,
+            selected_month
+        ),
+
+        pending_requests=pending_requests,
+
+        accepted_unscheduled=
+            accepted_unscheduled,
+
+        jobs=jobs,
+
+        summary=summary,
+
+        month_name=
+            calendar.month_name[
+                selected_month
+            ],
+
+        selected_month=
+            selected_month,
+
+        selected_year=
+            selected_year,
+
+        previous_month=
+            previous_month_date.month,
+
+        previous_year=
+            previous_month_date.year,
+
+        next_month=
+            next_month_date.month,
+
+        next_year=
+            next_month_date.year,
+
+        today=today,
+
+        today_iso=
+            today.isoformat(),
+
+        job_statuses=
+            JOB_STATUSES,
+    )
+
+
+# ==========================================================
+# ACCEPT CUSTOMER REQUEST
+# ==========================================================
+
+@app.route(
+    "/job-scheduling/requests/<int:request_id>/accept",
+    methods=["POST"]
+)
+@login_required
+def accept_job_request(
+    request_id
+):
+
+    validate_csrf()
+
+
+    request_row = request_or_404(
+        request_id
+    )
+
+
+    if request_row[
+        "status"
+    ] != "Pending":
+
+        flash(
+            (
+                "That request has already "
+                "been processed."
+            ),
+            "error"
+        )
+
+        return redirect(
+            url_for("job_scheduling")
+        )
+
+
+    job_number = unique_number(
+        "JOB",
+        "jobs",
+        "job_number"
+    )
+
+
+    timestamp = now()
+
+
+    cursor = db().execute(
+        """
+        INSERT INTO jobs (
+            job_number,
+            request_id,
+            customer_name,
+            customer_phone,
+            customer_email,
+            job_title,
+            job_type,
+            description,
+            site_address,
+            suburb,
+            priority,
+            status,
+            received_date,
+            scheduled_date,
+            start_time,
+            end_time,
+            estimated_hours,
+            assigned_to,
+            notes,
+            google_event_id,
+            google_sync_status,
+            accepted_at,
+            completed_at,
+            created_at,
+            updated_at
+        )
+        VALUES (
+            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?,
+            ?
+        )
+        """,
+        (
+            job_number,
+
+            request_id,
+
+            request_row[
+                "customer_name"
+            ],
+
+            request_row[
+                "customer_phone"
+            ],
+
+            request_row[
+                "customer_email"
+            ],
+
+            request_row[
+                "job_title"
+            ],
+
+            request_row[
+                "job_type"
+            ],
+
+            request_row[
+                "description"
+            ],
+
+            request_row[
+                "site_address"
+            ],
+
+            request_row[
+                "suburb"
+            ],
+
+            request_row[
+                "priority"
+            ],
+
+            "Accepted",
+
+            request_row[
+                "created_at"
+            ][:10],
+
+            "",
+
+            "",
+
+            "",
+
+            0,
+
+            "",
+
+            request_row[
+                "notes"
+            ],
+
+            "",
+
+            "Not connected",
+
+            timestamp,
+
+            "",
+
+            timestamp,
+
+            timestamp
+        )
+    )
+
+
+    db().execute(
+        """
+        UPDATE job_requests
+
+        SET
+            status = 'Accepted',
+            job_id = ?,
+            decision_at = ?,
+            updated_at = ?
+
+        WHERE id = ?
+        """,
+        (
+            cursor.lastrowid,
+            timestamp,
+            timestamp,
+            request_id
+        )
+    )
+
+
+    db().commit()
+
+
+    flash(
+        (
+            f'{request_row["request_number"]} '
+            f"was accepted as {job_number}. "
+            "It is ready to schedule."
+        ),
+        "success"
+    )
+
+
+    return redirect(
+        url_for("job_scheduling")
+    )
+
+
+# ==========================================================
+# DECLINE CUSTOMER REQUEST
+# ==========================================================
+
+@app.route(
+    "/job-scheduling/requests/<int:request_id>/decline",
+    methods=["POST"]
+)
+@login_required
+def decline_job_request(
+    request_id
+):
+
+    validate_csrf()
+
+
+    request_row = request_or_404(
+        request_id
+    )
+
+
+    if request_row[
+        "status"
+    ] != "Pending":
+
+        flash(
+            (
+                "That request has already "
+                "been processed."
+            ),
+            "error"
+        )
+
+        return redirect(
+            url_for("job_scheduling")
+        )
+
+
+    reason = request.form.get(
+        "decline_reason",
+        ""
+    ).strip()[:500]
+
+
+    timestamp = now()
+
+
+    db().execute(
+        """
+        UPDATE job_requests
+
+        SET
+            status = 'Declined',
+            admin_note = ?,
+            decision_at = ?,
+            updated_at = ?
+
+        WHERE id = ?
+        """,
+        (
+            reason,
+            timestamp,
+            timestamp,
+            request_id
+        )
+    )
+
+
+    db().commit()
+
+
+    flash(
+        (
+            f'{request_row["request_number"]} '
+            "was declined."
+        ),
+        "success"
+    )
+
+
+    return redirect(
+        url_for("job_scheduling")
+    )
+
+
+# ==========================================================
+# SCHEDULE / RESCHEDULE JOB
 # ==========================================================
 
 @app.route(
     "/job-scheduling/<int:job_id>/schedule",
-    methods=["POST"],
+    methods=["POST"]
 )
 @login_required
-def schedule_existing_job(
-    job_id: int,
-) -> Response:
-    """
-    Assigns a date, time and worker to a received job.
-    """
+def schedule_job(
+    job_id
+):
 
     validate_csrf()
 
-    job = get_job_or_404(
-        job_id,
+
+    job = job_or_404(
+        job_id
     )
+
 
     scheduled_date = request.form.get(
         "scheduled_date",
-        "",
+        ""
     ).strip()
 
-    start_time = request.form.get(
+
+    start = request.form.get(
         "start_time",
-        "",
+        ""
     ).strip()
 
-    end_time = request.form.get(
+
+    end = request.form.get(
         "end_time",
-        "",
+        ""
     ).strip()
 
-    assigned_to = request.form.get(
+
+    worker = request.form.get(
         "assigned_to",
-        "",
-    ).strip()
+        ""
+    ).strip()[:100]
 
-    errors: list[str] = []
 
-    if not scheduled_date or not valid_date_text(
-        scheduled_date,
+    schedule_notes = request.form.get(
+        "schedule_notes",
+        ""
+    ).strip()[:700]
+
+
+    errors = []
+
+
+    if not valid_date(
+        scheduled_date
     ):
+
         errors.append(
-            "Enter a valid scheduled date.",
+            "Enter a valid scheduled date."
         )
 
-    if bool(start_time) != bool(end_time):
+
+    if bool(start) != bool(end):
+
         errors.append(
-            "Enter both a start time and end time.",
+            (
+                "Enter both a start time and "
+                "end time."
+            )
         )
 
-    if start_time and not valid_time_text(
-        start_time,
-    ):
-        errors.append(
-            "Enter a valid start time.",
+
+    if start:
+
+        if (
+            not valid_time(start)
+
+            or not valid_time(end)
+
+            or end <= start
+        ):
+
+            errors.append(
+                (
+                    "Enter a valid time range "
+                    "with the end later than "
+                    "the start."
+                )
+            )
+
+
+    try:
+
+        estimated_hours = round(
+            float(
+                request.form.get(
+                    "estimated_hours",
+                    "0"
+                )
+                or 0
+            ),
+            2
         )
 
-    if end_time and not valid_time_text(
-        end_time,
-    ):
+
+    except ValueError:
+
+        estimated_hours = 0
+
         errors.append(
-            "Enter a valid end time.",
+            (
+                "Estimated hours must "
+                "be a valid number."
+            )
         )
+
+
+    if not 0 <= estimated_hours <= 1000:
+
+        errors.append(
+            (
+                "Estimated hours must "
+                "be between 0 and 1000."
+            )
+        )
+
 
     if (
-        start_time
-        and end_time
-        and valid_time_text(start_time)
-        and valid_time_text(end_time)
-        and end_time <= start_time
+        not errors
+        and start
     ):
-        errors.append(
-            "The end time must be later than the start time.",
+
+        conflict = schedule_conflict(
+            job_id,
+            scheduled_date,
+            start,
+            end,
+            worker
         )
 
-    if len(assigned_to) > 100:
-        errors.append(
-            "Assigned worker cannot exceed 100 characters.",
-        )
+
+        if conflict:
+
+            errors.append(
+                (
+                    "Schedule conflict with "
+                    f'{conflict["job_number"]} — '
+                    f'{conflict["job_title"]} '
+                    f'({conflict["start_time"]}'
+                    f'–{conflict["end_time"]}).'
+                )
+            )
+
 
     if errors:
-        for error in errors:
+
+        for message in errors:
+
             flash(
-                error,
-                "error",
+                message,
+                "error"
             )
+
 
         return redirect(
-            url_for(
-                "job_scheduling",
-                schedule=job_id,
-            )
-            + "#job-form-panel"
+            url_for("job_scheduling")
         )
 
-    get_db().execute(
+
+    if job[
+        "status"
+    ] in {
+        "Received",
+        "Accepted",
+        "Scheduled"
+    }:
+
+        next_status = "Scheduled"
+
+    else:
+
+        next_status = job[
+            "status"
+        ]
+
+
+    db().execute(
         """
         UPDATE jobs
 
@@ -2940,39 +3692,93 @@ def schedule_existing_job(
             scheduled_date = ?,
             start_time = ?,
             end_time = ?,
+            estimated_hours = ?,
             assigned_to = ?,
-            status = 'Scheduled',
+
+            notes =
+                CASE
+                    WHEN ? = ''
+                        THEN notes
+                    ELSE ?
+                END,
+
+            status = ?,
+
+            google_sync_status =
+                'Not connected',
+
             updated_at = ?
 
         WHERE id = ?
         """,
         (
             scheduled_date,
-            start_time,
-            end_time,
-            assigned_to,
-            current_time(),
-            job_id,
-        ),
+            start,
+            end,
+            estimated_hours,
+            worker,
+            schedule_notes,
+            schedule_notes,
+            next_status,
+            now(),
+            job_id
+        )
     )
 
-    get_db().commit()
+
+    db().commit()
+
+
+    # ======================================================
+    # FUTURE GOOGLE CALENDAR API INTEGRATION
+    # ======================================================
+    #
+    # When Google Calendar is added later:
+    #
+    # 1. Build a Google Calendar event from this job.
+    #
+    # 2. If job["google_event_id"] is empty:
+    #       create a new Google event.
+    #
+    # 3. Otherwise:
+    #       update the existing event.
+    #
+    # 4. Save Google's event ID into:
+    #       jobs.google_event_id
+    #
+    # 5. Set:
+    #       jobs.google_sync_status = 'Synced'
+    #
+    # The TimberOps calendar works independently until then.
+    # ======================================================
+
 
     flash(
-        f"{job['job_number']} was added to the schedule.",
-        "success",
+        (
+            f'{job["job_number"]} '
+            f"was scheduled for "
+            f"{scheduled_date}."
+        ),
+        "success"
     )
+
 
     return redirect(
         url_for(
             "job_scheduling",
+
             month=int(
-                scheduled_date[5:7]
+                scheduled_date[
+                    5:7
+                ]
             ),
+
             year=int(
-                scheduled_date[0:4]
-            ),
-        ),
+                scheduled_date[
+                    :4
+                ]
+            )
+        )
     )
 
 
@@ -2982,132 +3788,169 @@ def schedule_existing_job(
 
 @app.route(
     "/job-scheduling/<int:job_id>/status",
-    methods=["POST"],
+    methods=["POST"]
 )
 @login_required
 def update_job_status(
-    job_id: int,
-) -> Response:
-    """
-    Changes the progress status of a job.
-    """
+    job_id
+):
 
     validate_csrf()
 
-    job = get_job_or_404(
-        job_id,
+
+    job = job_or_404(
+        job_id
     )
 
-    new_status = request.form.get(
+
+    status = request.form.get(
         "status",
-        "",
+        ""
     ).strip()
 
-    if new_status not in JOB_STATUSES:
+
+    if status not in JOB_STATUSES:
+
         flash(
             "Select a valid job status.",
-            "error",
+            "error"
         )
 
         return redirect(
-            url_for("job_scheduling"),
+            url_for("job_scheduling")
         )
+
 
     if (
-        new_status in {
+        status in {
             "Scheduled",
             "In Progress",
-            "Completed",
+            "On Hold",
+            "Completed"
         }
-        and not job["scheduled_date"]
+
+        and not job[
+            "scheduled_date"
+        ]
     ):
+
         flash(
-            "Schedule the job before changing it to this status.",
-            "error",
+            (
+                "Schedule the job before "
+                "changing it to that status."
+            ),
+            "error"
         )
 
         return redirect(
-            url_for(
-                "job_scheduling",
-                schedule=job_id,
-            )
-            + "#job-form-panel"
+            url_for("job_scheduling")
         )
 
-    get_db().execute(
+
+    if status == "Completed":
+
+        completed_at = now()
+
+    else:
+
+        completed_at = job[
+            "completed_at"
+        ]
+
+
+    db().execute(
         """
         UPDATE jobs
 
         SET
             status = ?,
+            completed_at = ?,
             updated_at = ?
 
         WHERE id = ?
         """,
         (
-            new_status,
-            current_time(),
-            job_id,
+            status,
+            completed_at,
+            now(),
+            job_id
+        )
+    )
+
+
+    # ------------------------------------------------------
+    # KEEP CUSTOMER-FACING REQUEST STATUS IN SYNC
+    # ------------------------------------------------------
+
+    if job[
+        "request_id"
+    ]:
+
+        if status == "Completed":
+
+            request_status = "Completed"
+
+
+        elif status == "Cancelled":
+
+            request_status = "Cancelled"
+
+
+        else:
+
+            request_status = "Accepted"
+
+
+        db().execute(
+            """
+            UPDATE job_requests
+
+            SET
+                status = ?,
+                updated_at = ?
+
+            WHERE id = ?
+            """,
+            (
+                request_status,
+                now(),
+                job["request_id"]
+            )
+        )
+
+
+    db().commit()
+
+
+    flash(
+        (
+            f'{job["job_number"]} '
+            f"is now {status}."
         ),
+        "success"
     )
 
-    get_db().commit()
-
-    flash(
-        f"{job['job_number']} is now {new_status}.",
-        "success",
-    )
 
     return redirect(
-        url_for("job_scheduling"),
+        url_for("job_scheduling")
     )
 
 
 # ==========================================================
-# DELETE JOB
+# INITIALISE DATABASE
 # ==========================================================
 
-@app.route(
-    "/job-scheduling/<int:job_id>/delete",
-    methods=["POST"],
-)
-@login_required
-def delete_job(
-    job_id: int,
-) -> Response:
-    """
-    Permanently removes a job record.
-    """
+with app.app_context():
 
-    validate_csrf()
+    init_db()
 
-    job = get_job_or_404(
-        job_id,
-    )
 
-    get_db().execute(
-        """
-        DELETE FROM jobs
-        WHERE id = ?
-        """,
-        (job_id,),
-    )
-
-    get_db().commit()
-
-    flash(
-        f"Job {job['job_number']} was deleted.",
-        "success",
-    )
-
-    return redirect(
-        url_for("job_scheduling"),
-    )
-
-# ============================================================
+# ==========================================================
 # START APPLICATION
-# ============================================================
+# ==========================================================
 
 if __name__ == "__main__":
-    app.run(debug=True)
-    
+
+    app.run(
+        debug=True
+    )

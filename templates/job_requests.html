@@ -1,0 +1,2561 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>TimberOps | Job Request</title>
+
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='homepage.css') }}"
+    >
+
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
+
+
+    <style>
+
+        :root {
+            --background: #f7f3e8;
+            --card: #fffdf7;
+            --border: #d8cfb2;
+
+            --text: #26303d;
+            --muted: #6e7681;
+
+            --green: #667b3f;
+            --dark-green: #46582a;
+
+            --gold: #d9a45f;
+
+            --red: #9b3737;
+            --red-background: #f6dddd;
+        }
+
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+            color: var(--text);
+
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(
+                        217,
+                        164,
+                        95,
+                        0.17
+                    ),
+                    transparent 30%
+                ),
+                var(--background);
+        }
+
+
+        .request-shell.with-sidebar {
+            margin-left: 100px;
+        }
+
+
+        /* ==================================================
+           PUBLIC HEADER
+        =================================================== */
+
+        .public-header {
+            min-height: 78px;
+
+            display: flex;
+
+            justify-content: space-between;
+            align-items: center;
+
+            gap: 18px;
+
+            padding:
+                12px clamp(
+                    18px,
+                    4vw,
+                    55px
+                );
+
+            background-color:
+                rgba(
+                    255,
+                    253,
+                    247,
+                    0.94
+                );
+
+            border-bottom:
+                1px solid
+                var(--border);
+        }
+
+
+        .public-brand {
+            display: flex;
+
+            align-items: center;
+
+            gap: 11px;
+
+            color: var(--text);
+
+            text-decoration: none;
+        }
+
+
+        .public-brand img {
+            width: 56px;
+            height: 50px;
+
+            padding: 4px;
+
+            object-fit: contain;
+
+            background-color:
+                var(--gold);
+
+            border-radius: 9px;
+        }
+
+
+        .public-brand strong,
+        .public-brand span {
+            display: block;
+        }
+
+
+        .public-brand strong {
+            font-size: 22px;
+        }
+
+
+        .public-brand span {
+            color:
+                var(--muted);
+
+            font-size: 11px;
+        }
+
+
+        .header-link {
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            padding:
+                9px 12px;
+
+            color:
+                var(--dark-green);
+
+            background-color:
+                #e5ecd8;
+
+            border-radius: 8px;
+
+            font-weight: 700;
+
+            text-decoration: none;
+        }
+
+
+        /* ==================================================
+           PAGE LAYOUT
+        =================================================== */
+
+        .request-main {
+            width:
+                min(
+                    1320px,
+                    calc(
+                        100% - 36px
+                    )
+                );
+
+            margin: auto;
+        }
+
+
+        .hero {
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, 1.5fr)
+                minmax(280px, 0.65fr);
+
+            align-items: center;
+
+            gap: 26px;
+
+            padding:
+                50px 0 36px;
+        }
+
+
+        .eyebrow {
+            display: inline-block;
+
+            margin-bottom: 7px;
+
+            color: #806a38;
+
+            font-size: 11px;
+            font-weight: 700;
+
+            letter-spacing:
+                0.12em;
+
+            text-transform:
+                uppercase;
+        }
+
+
+        .hero h1 {
+            max-width: 780px;
+
+            margin:
+                0 0 13px;
+
+            font-size:
+                clamp(
+                    38px,
+                    5vw,
+                    60px
+                );
+
+            line-height: 1.02;
+        }
+
+
+        .hero-copy > p {
+            max-width: 760px;
+
+            color: #626b77;
+
+            font-size: 17px;
+
+            line-height: 1.6;
+        }
+
+
+        .hero-points {
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 9px;
+
+            margin-top: 20px;
+        }
+
+
+        .hero-points span {
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            padding:
+                8px 10px;
+
+            color: #536245;
+
+            background-color:
+                #e5ecd8;
+
+            border:
+                1px solid #cdd8bd;
+
+            border-radius: 8px;
+
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+
+        .hero-card {
+            padding: 23px;
+
+            background-color:
+                var(--card);
+
+            border:
+                1px solid #ddd1af;
+
+            border-radius: 16px;
+
+            box-shadow:
+                0 15px 35px
+                rgba(
+                    70,
+                    55,
+                    25,
+                    0.08
+                );
+        }
+
+
+        .hero-card > i {
+            width: 50px;
+            height: 50px;
+
+            display: grid;
+
+            place-items: center;
+
+            margin-bottom: 13px;
+
+            color:
+                var(--green);
+
+            background-color:
+                #e5ecd8;
+
+            border-radius: 12px;
+
+            font-size: 20px;
+        }
+
+
+        .hero-card > strong {
+            font-size: 19px;
+        }
+
+
+        .hero-card ol {
+            display: grid;
+
+            gap: 9px;
+
+            margin:
+                13px 0 0;
+
+            padding-left: 18px;
+
+            color: #5f6874;
+
+            line-height: 1.4;
+        }
+
+
+        /* ==================================================
+           FLASH / CONFIRMATION
+        =================================================== */
+
+        .flash-container {
+            margin-bottom: 16px;
+        }
+
+
+        .flash-message {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: center;
+
+            padding:
+                12px 14px;
+
+            margin-bottom: 8px;
+
+            border-radius: 8px;
+        }
+
+
+        .flash-message.error {
+            color: #852b2b;
+
+            background-color:
+                var(--red-background);
+
+            border:
+                1px solid #e3b6b6;
+        }
+
+
+        .flash-message.success {
+            color: #315524;
+
+            background-color:
+                #e1efd9;
+
+            border:
+                1px solid #b8d5a9;
+        }
+
+
+        .close-flash {
+            border: none;
+
+            color: inherit;
+
+            background: none;
+
+            font-size: 21px;
+
+            cursor: pointer;
+        }
+
+
+        .confirmation {
+            display: grid;
+
+            grid-template-columns:
+                auto 1fr auto;
+
+            align-items: center;
+
+            gap: 14px;
+
+            padding: 18px;
+
+            margin-bottom: 20px;
+
+            background-color:
+                #e7f1df;
+
+            border:
+                1px solid #bfd7b2;
+
+            border-radius: 13px;
+        }
+
+
+        .confirmation-icon {
+            width: 50px;
+            height: 50px;
+
+            display: grid;
+
+            place-items: center;
+
+            color: #3c6b34;
+
+            background-color:
+                #ffffff;
+
+            border-radius: 50%;
+
+            font-size: 22px;
+        }
+
+
+        .confirmation h2 {
+            margin-bottom: 3px;
+
+            font-size: 21px;
+        }
+
+
+        .confirmation p {
+            color: #60705b;
+
+            font-size: 13px;
+        }
+
+
+        .reference-box {
+            text-align: right;
+        }
+
+
+        .reference-box span,
+        .reference-box strong {
+            display: block;
+        }
+
+
+        .reference-box span {
+            color: #6b755f;
+
+            font-size: 10px;
+        }
+
+
+        .reference-box strong {
+            color: #425c37;
+
+            font-size: 17px;
+
+            letter-spacing:
+                0.04em;
+        }
+
+
+        .copy-btn {
+            margin-top: 5px;
+
+            padding:
+                6px 8px;
+
+            border: none;
+
+            color:
+                var(--dark-green);
+
+            background-color:
+                #ffffff;
+
+            border-radius: 6px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+
+        /* ==================================================
+           MAIN FORM / STATUS LAYOUT
+        =================================================== */
+
+        .layout {
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, 1.4fr)
+                minmax(300px, 0.55fr);
+
+            align-items: start;
+
+            gap: 24px;
+
+            padding-bottom: 55px;
+        }
+
+
+        .panel {
+            padding: 26px;
+
+            background-color:
+                var(--card);
+
+            border:
+                1px solid #ddd1af;
+
+            border-radius: 16px;
+
+            box-shadow:
+                0 9px 25px
+                rgba(
+                    70,
+                    55,
+                    25,
+                    0.05
+                );
+        }
+
+
+        .status-panel {
+            position: sticky;
+
+            top: 18px;
+        }
+
+
+        .section-head {
+            display: flex;
+
+            align-items: flex-start;
+
+            gap: 12px;
+
+            margin-bottom: 20px;
+        }
+
+
+        .section-num {
+            width: 40px;
+            height: 40px;
+
+            display: grid;
+
+            place-items: center;
+
+            flex-shrink: 0;
+
+            color:
+                var(--dark-green);
+
+            background-color:
+                #e5ecd8;
+
+            border-radius: 9px;
+
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+
+        .section-head h2 {
+            margin-bottom: 3px;
+
+            font-size: 25px;
+        }
+
+
+        .section-head p {
+            color:
+                var(--muted);
+
+            line-height: 1.4;
+        }
+
+
+        /* ==================================================
+           JOB REQUEST FORM
+        =================================================== */
+
+        .request-form {
+            display: grid;
+
+            gap: 18px;
+        }
+
+
+        .request-form fieldset {
+            padding: 17px;
+
+            background-color:
+                #fffef9;
+
+            border:
+                1px solid #e7dfc9;
+
+            border-radius: 10px;
+        }
+
+
+        .request-form legend {
+            padding:
+                0 6px;
+
+            color: #58624d;
+
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+
+        .form-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+
+            gap: 13px;
+        }
+
+
+        .request-form label,
+        .status-form label {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 5px;
+        }
+
+
+        .request-form label span,
+        .status-form label span {
+            color: #4f5946;
+
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+
+        .request-form input,
+        .request-form select,
+        .request-form textarea,
+        .status-form input {
+            width: 100%;
+
+            padding:
+                9px 10px;
+
+            color:
+                var(--text);
+
+            background-color:
+                #ffffff;
+
+            border:
+                1px solid #d6ccb0;
+
+            border-radius: 7px;
+        }
+
+
+        .request-form input,
+        .request-form select,
+        .status-form input {
+            min-height: 42px;
+        }
+
+
+        .request-form textarea {
+            resize: vertical;
+
+            line-height: 1.45;
+        }
+
+
+        .full {
+            grid-column:
+                1 / -1;
+        }
+
+
+        .char-count {
+            color:
+                var(--muted);
+
+            font-size: 10px;
+
+            text-align: right;
+        }
+
+
+        .field-note {
+            display: flex;
+
+            gap: 7px;
+
+            margin-top: 11px;
+
+            padding: 9px;
+
+            color: #736645;
+
+            background-color:
+                #f6eed8;
+
+            border:
+                1px solid #e0cfa7;
+
+            border-radius: 7px;
+
+            font-size: 11px;
+
+            line-height: 1.35;
+        }
+
+
+        .privacy {
+            display: flex !important;
+
+            flex-direction: row !important;
+
+            align-items: flex-start;
+
+            gap: 9px !important;
+
+            margin-top: 11px;
+
+            padding: 10px;
+
+            background-color:
+                #f5efdc;
+
+            border-radius: 7px;
+        }
+
+
+        .privacy input {
+            width: 17px;
+            height: 17px;
+
+            min-height: auto;
+
+            flex-shrink: 0;
+
+            margin-top: 2px;
+        }
+
+
+        .privacy span {
+            font-weight: 500 !important;
+
+            line-height: 1.4;
+        }
+
+
+        .submit-row {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: center;
+
+            gap: 15px;
+        }
+
+
+        .submit-note {
+            display: flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            color: #69725f;
+
+            font-size: 11px;
+        }
+
+
+        .submit-btn,
+        .status-btn {
+            min-height: 44px;
+
+            display: inline-flex;
+
+            justify-content: center;
+            align-items: center;
+
+            gap: 8px;
+
+            padding:
+                10px 15px;
+
+            border:
+                1px solid
+                var(--green);
+
+            color: #ffffff;
+
+            background-color:
+                var(--green);
+
+            border-radius: 8px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+
+        .submit-btn:hover,
+        .status-btn:hover {
+            background-color:
+                var(--dark-green);
+        }
+
+
+        .submit-btn:disabled {
+            opacity: 0.65;
+
+            cursor: wait;
+        }
+
+
+        /* ==================================================
+           STATUS LOOKUP
+        =================================================== */
+
+        .status-form {
+            display: grid;
+
+            gap: 11px;
+        }
+
+
+        .status-btn {
+            width: 100%;
+        }
+
+
+        .status-result {
+            margin-top: 17px;
+
+            padding: 14px;
+
+            background-color:
+                #faf7ed;
+
+            border:
+                1px solid #e4dbc3;
+
+            border-radius: 9px;
+        }
+
+
+        .status-top {
+            display: flex;
+
+            justify-content: space-between;
+
+            gap: 8px;
+
+            margin-bottom: 10px;
+        }
+
+
+        .status-top > span {
+            color: #806a38;
+
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+
+        .status-badge {
+            padding:
+                4px 7px;
+
+            color: #7b5c1c;
+
+            background-color:
+                #f6e7c3;
+
+            border-radius: 999px;
+
+            font-size: 10px;
+        }
+
+
+        .status-badge.Accepted,
+        .status-badge.Completed {
+            color: #3d6b34;
+
+            background-color:
+                #e1efd9;
+        }
+
+
+        .status-badge.Declined,
+        .status-badge.Cancelled {
+            color:
+                var(--red);
+
+            background-color:
+                var(--red-background);
+        }
+
+
+        .status-result h3 {
+            font-size: 18px;
+        }
+
+
+        .status-result > p {
+            margin:
+                2px 0 10px;
+
+            color:
+                var(--muted);
+        }
+
+
+        .status-detail {
+            display: flex;
+
+            justify-content: space-between;
+
+            gap: 10px;
+
+            padding:
+                8px 0;
+
+            border-top:
+                1px solid #e5ddc8;
+
+            font-size: 11px;
+        }
+
+
+        .status-detail span {
+            color:
+                var(--muted);
+        }
+
+
+        .admin-note {
+            margin-top: 9px;
+
+            padding: 9px;
+
+            color: #6d6041;
+
+            background-color:
+                #f4ead0;
+
+            border-radius: 7px;
+
+            font-size: 12px;
+        }
+
+
+        .status-help {
+            display: flex;
+
+            gap: 9px;
+
+            margin-top: 18px;
+
+            padding-top: 16px;
+
+            border-top:
+                1px solid #e5ddc8;
+        }
+
+
+        .status-help > i {
+            color:
+                var(--green);
+        }
+
+
+        .status-help strong {
+            display: block;
+
+            margin-bottom: 5px;
+        }
+
+
+        .status-help p {
+            margin-bottom: 4px;
+
+            color:
+                var(--muted);
+
+            font-size: 11px;
+
+            line-height: 1.35;
+        }
+
+
+        /* ==================================================
+           FOOTER
+        =================================================== */
+
+        .footer {
+            display: flex;
+
+            justify-content: space-between;
+
+            gap: 15px;
+
+            padding:
+                18px
+                clamp(
+                    18px,
+                    4vw,
+                    55px
+                );
+
+            color: #77796f;
+
+            background-color:
+                #eee8d7;
+
+            border-top:
+                1px solid
+                var(--border);
+
+            font-size: 11px;
+        }
+
+
+        /* ==================================================
+           RESPONSIVE
+        =================================================== */
+
+        @media (
+            max-width: 1000px
+        ) {
+
+            .hero,
+            .layout {
+                grid-template-columns:
+                    1fr;
+            }
+
+
+            .status-panel {
+                position: static;
+            }
+
+
+            .hero-card {
+                max-width: 620px;
+            }
+        }
+
+
+        @media (
+            max-width: 760px
+        ) {
+
+            .request-shell.with-sidebar {
+                margin-left: 76px;
+            }
+
+
+            .request-main {
+                width:
+                    min(
+                        calc(
+                            100% - 26px
+                        ),
+                        1320px
+                    );
+            }
+
+
+            .panel {
+                padding: 19px;
+            }
+
+
+            .form-grid {
+                grid-template-columns:
+                    1fr;
+            }
+
+
+            .full {
+                grid-column: auto;
+            }
+
+
+            .submit-row,
+            .footer,
+            .confirmation {
+                display: flex;
+
+                flex-direction: column;
+
+                align-items: stretch;
+            }
+
+
+            .reference-box {
+                text-align: left;
+            }
+
+
+            .submit-btn {
+                width: 100%;
+            }
+        }
+
+
+        @media (
+            max-width: 520px
+        ) {
+
+            .public-header {
+                flex-direction: column;
+
+                align-items: flex-start;
+            }
+
+
+            .header-link {
+                width: 100%;
+
+                justify-content: center;
+            }
+
+
+            .hero {
+                padding-top: 34px;
+            }
+
+
+            .section-head {
+                flex-direction: column;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- ==================================================
+         ADMIN SIDEBAR
+         Only shown when an administrator is logged in.
+    =================================================== -->
+
+    {% if session.get('admin_logged_in') %}
+
+        <aside class="sidebar">
+
+            <div class="logo-box">
+
+                <img
+                    src="{{ url_for('static', filename='images/transparent-logo.png') }}"
+                    alt="TimberOps Logo"
+                    class="sidebar-logo"
+                >
+
+            </div>
+
+
+            <nav
+                class="sidebar-menu"
+                aria-label="Dashboard navigation"
+            >
+
+                <a
+                    href="{{ url_for('home') }}"
+                    class="sidebar-link"
+                    title="Home"
+                >
+                    <i class="fa-solid fa-house"></i>
+                </a>
+
+
+                <a
+                    href="{{ url_for('stock_tracker') }}"
+                    class="sidebar-link"
+                    title="Stock Tracker"
+                >
+                    <i class="fa-solid fa-box"></i>
+                </a>
+
+
+                <a
+                    href="{{ url_for('job_scheduling') }}"
+                    class="sidebar-link"
+                    title="Job Scheduling"
+                >
+                    <i class="fa-solid fa-calendar-days"></i>
+                </a>
+
+
+                <a
+                    href="{{ url_for('job_request') }}"
+                    class="sidebar-link active"
+                    title="Customer Job Request"
+                >
+                    <i class="fa-solid fa-comment"></i>
+                </a>
+
+
+                <a
+                    href="#"
+                    class="sidebar-link coming-soon"
+                    data-feature="Documents"
+                >
+                    <i class="fa-solid fa-file-lines"></i>
+                </a>
+
+
+                <a
+                    href="#"
+                    class="sidebar-link coming-soon"
+                    data-feature="Information"
+                >
+                    <i class="fa-solid fa-circle-info"></i>
+                </a>
+
+
+                <a
+                    href="#"
+                    class="sidebar-link coming-soon"
+                    data-feature="Reports"
+                >
+                    <i class="fa-solid fa-chart-column"></i>
+                </a>
+
+
+                <a
+                    href="#"
+                    class="sidebar-link coming-soon"
+                    data-feature="Settings"
+                >
+                    <i class="fa-solid fa-gear"></i>
+                </a>
+
+            </nav>
+
+        </aside>
+
+    {% endif %}
+
+
+    <div
+        class="
+            request-shell
+
+            {% if session.get('admin_logged_in') %}
+                with-sidebar
+            {% endif %}
+        "
+    >
+
+
+        <!-- ==================================================
+             PUBLIC HEADER
+        =================================================== -->
+
+        <header class="public-header">
+
+            <a
+                href="{{ url_for('job_request') }}"
+                class="public-brand"
+            >
+
+                <img
+                    src="{{ url_for('static', filename='images/transparent-logo.png') }}"
+                    alt="TimberOps Logo"
+                >
+
+
+                <div>
+
+                    <strong>
+                        TimberOps
+                    </strong>
+
+                    <span>
+                        Carpentry Job Requests
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            {% if session.get('admin_logged_in') %}
+
+                <a
+                    href="{{ url_for('job_scheduling') }}"
+                    class="header-link"
+                >
+
+                    <i class="fa-solid fa-calendar-days"></i>
+
+                    Admin Schedule
+
+                </a>
+
+
+            {% else %}
+
+                <a
+                    href="{{ url_for('admin_login') }}"
+                    class="header-link"
+                >
+
+                    <i class="fa-solid fa-lock"></i>
+
+                    Admin Login
+
+                </a>
+
+            {% endif %}
+
+        </header>
+
+
+        <!-- ==================================================
+             PAGE
+        =================================================== -->
+
+        <main class="request-main">
+
+
+            <!-- ==================================================
+                 HERO
+            =================================================== -->
+
+            <section class="hero">
+
+                <div class="hero-copy">
+
+                    <span class="eyebrow">
+                        JIGSH Maintenance Services
+                    </span>
+
+
+                    <h1>
+                        Tell us about the carpentry
+                        work you need.
+                    </h1>
+
+
+                    <p>
+                        Send a booking or job enquiry through
+                        TimberOps. The request is stored as pending
+                        so the administrator can review, accept,
+                        decline and schedule it.
+                    </p>
+
+
+                    <div class="hero-points">
+
+                        <span>
+
+                            <i class="fa-solid fa-file-circle-check"></i>
+
+                            Saved instantly
+
+                        </span>
+
+
+                        <span>
+
+                            <i class="fa-solid fa-user-check"></i>
+
+                            Admin reviewed
+
+                        </span>
+
+
+                        <span>
+
+                            <i class="fa-solid fa-calendar-check"></i>
+
+                            Accepted work gets scheduled
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="hero-card">
+
+                    <i class="fa-solid fa-hammer"></i>
+
+
+                    <strong>
+                        How it works
+                    </strong>
+
+
+                    <ol>
+
+                        <li>
+                            Submit your job and preferred availability.
+                        </li>
+
+                        <li>
+                            The administrator reviews the request.
+                        </li>
+
+                        <li>
+                            Accepted work is scheduled on the
+                            TimberOps calendar.
+                        </li>
+
+                    </ol>
+
+                </div>
+
+            </section>
+
+
+            <!-- ==================================================
+                 SUBMISSION CONFIRMATION
+            =================================================== -->
+
+            {% if submitted_request %}
+
+                <section class="confirmation">
+
+                    <div class="confirmation-icon">
+
+                        <i class="fa-solid fa-check"></i>
+
+                    </div>
+
+
+                    <div>
+
+                        <h2>
+                            Your request is now in TimberOps.
+                        </h2>
+
+                        <p>
+                            The administrator can see it immediately
+                            on the Job Scheduling page. Keep your
+                            reference number to check the status later.
+                        </p>
+
+                    </div>
+
+
+                    <div class="reference-box">
+
+                        <span>
+                            Request reference
+                        </span>
+
+
+                        <strong id="request-reference">
+                            {{ submitted_request.request_number }}
+                        </strong>
+
+
+                        <button
+                            type="button"
+                            class="copy-btn"
+                            id="copy-reference"
+                        >
+
+                            <i class="fa-regular fa-copy"></i>
+
+                            Copy
+
+                        </button>
+
+                    </div>
+
+                </section>
+
+            {% endif %}
+
+
+            <!-- ==================================================
+                 FLASH MESSAGES
+            =================================================== -->
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+
+                {% if messages %}
+
+                    <section class="flash-container">
+
+                        {% for category, message in messages %}
+
+                            <div class="flash-message {{ category }}">
+
+                                <span>
+                                    {{ message }}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    class="close-flash"
+                                >
+                                    &times;
+                                </button>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </section>
+
+                {% endif %}
+
+            {% endwith %}
+
+
+            <!-- ==================================================
+                 FORM / STATUS AREA
+            =================================================== -->
+
+            <section class="layout">
+
+
+                <!-- ==================================================
+                     JOB REQUEST FORM
+                =================================================== -->
+
+                <section class="panel">
+
+                    <div class="section-head">
+
+                        <span class="section-num">
+                            01
+                        </span>
+
+
+                        <div>
+
+                            <h2>
+                                Submit a Job Request
+                            </h2>
+
+
+                            <p>
+                                Preferred dates and times are requests
+                                only until the administrator confirms
+                                the final schedule.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <form
+                        action="{{ url_for('job_request') }}"
+                        method="POST"
+                        class="request-form"
+                        id="request-form"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        >
+
+
+                        <!-- ==========================================
+                             CONTACT DETAILS
+                        =========================================== -->
+
+                        <fieldset>
+
+                            <legend>
+                                Contact details
+                            </legend>
+
+
+                            <div class="form-grid">
+
+                                <label>
+
+                                    <span>
+                                        Full Name *
+                                    </span>
+
+                                    <input
+                                        type="text"
+                                        name="customer_name"
+                                        required
+                                        minlength="2"
+                                        maxlength="100"
+                                        value="{{ form_data.get('customer_name', '') }}"
+                                        placeholder="Jordan Smith"
+                                    >
+
+                                </label>
+
+
+                                <label>
+
+                                    <span>
+                                        Email Address *
+                                    </span>
+
+                                    <input
+                                        type="email"
+                                        name="customer_email"
+                                        required
+                                        maxlength="120"
+                                        value="{{ form_data.get('customer_email', '') }}"
+                                        placeholder="jordan@example.com"
+                                    >
+
+                                </label>
+
+
+                                <label>
+
+                                    <span>
+                                        Phone Number *
+                                    </span>
+
+                                    <input
+                                        type="tel"
+                                        name="customer_phone"
+                                        required
+                                        minlength="6"
+                                        maxlength="30"
+                                        value="{{ form_data.get('customer_phone', '') }}"
+                                        placeholder="04xx xxx xxx"
+                                    >
+
+                                </label>
+
+                            </div>
+
+                        </fieldset>
+
+
+                        <!-- ==========================================
+                             JOB DETAILS
+                        =========================================== -->
+
+                        <fieldset>
+
+                            <legend>
+                                Job details
+                            </legend>
+
+
+                            <div class="form-grid">
+
+                                <label>
+
+                                    <span>
+                                        Job Title *
+                                    </span>
+
+                                    <input
+                                        type="text"
+                                        name="job_title"
+                                        required
+                                        minlength="3"
+                                        maxlength="120"
+                                        value="{{ form_data.get('job_title', '') }}"
+                                        placeholder="Repair timber deck"
+                                    >
+
+                                </label>
+
+
+                                <label>
+
+                                    <span>
+                                        Service Type *
+                                    </span>
+
+
+                                    <select
+                                        name="job_type"
+                                        required
+                                    >
+
+                                        <option value="">
+                                            Select a service
+                                        </option>
+
+
+                                        {% for job_type in job_types %}
+
+                                            <option
+                                                value="{{ job_type }}"
+
+                                                {% if form_data.get('job_type') == job_type %}
+                                                    selected
+                                                {% endif %}
+                                            >
+                                                {{ job_type }}
+                                            </option>
+
+                                        {% endfor %}
+
+                                    </select>
+
+                                </label>
+
+
+                                <label class="full">
+
+                                    <span>
+                                        Describe the Work *
+                                    </span>
+
+                                    <textarea
+                                        name="description"
+                                        id="description"
+                                        required
+                                        minlength="10"
+                                        maxlength="1500"
+                                        rows="6"
+                                        placeholder="Describe what needs to be built, repaired, installed or inspected."
+                                    >{{ form_data.get('description', '') }}</textarea>
+
+
+                                    <small class="char-count">
+
+                                        <span id="desc-count">
+                                            0
+                                        </span>
+
+                                        /1500
+
+                                    </small>
+
+                                </label>
+
+                            </div>
+
+                        </fieldset>
+
+
+                        <!-- ==========================================
+                             JOB LOCATION
+                        =========================================== -->
+
+                        <fieldset>
+
+                            <legend>
+                                Job location
+                            </legend>
+
+
+                            <div class="form-grid">
+
+                                <label>
+
+                                    <span>
+                                        Site Address *
+                                    </span>
+
+                                    <input
+                                        type="text"
+                                        name="site_address"
+                                        required
+                                        minlength="5"
+                                        maxlength="180"
+                                        value="{{ form_data.get('site_address', '') }}"
+                                        placeholder="Street address"
+                                    >
+
+                                </label>
+
+
+                                <label>
+
+                                    <span>
+                                        Suburb / Postcode *
+                                    </span>
+
+                                    <input
+                                        type="text"
+                                        name="suburb"
+                                        required
+                                        minlength="2"
+                                        maxlength="80"
+                                        value="{{ form_data.get('suburb', '') }}"
+                                        placeholder="Point Cook VIC 3030"
+                                    >
+
+                                </label>
+
+                            </div>
+
+                        </fieldset>
+
+
+                        <!-- ==========================================
+                             PREFERRED AVAILABILITY
+                        =========================================== -->
+
+                        <fieldset>
+
+                            <legend>
+                                Preferred availability
+                            </legend>
+
+
+                            <div class="form-grid">
+
+                                <label>
+
+                                    <span>
+                                        Preferred Date
+                                    </span>
+
+                                    <input
+                                        type="date"
+                                        name="preferred_date"
+                                        min="{{ today }}"
+                                        value="{{ form_data.get('preferred_date', '') }}"
+                                    >
+
+                                </label>
+
+
+                                <label>
+
+                                    <span>
+                                        Urgency
+                                    </span>
+
+
+                                    <select name="priority">
+
+                                        {% for priority in priorities %}
+
+                                            <option
+                                                value="{{ priority }}"
+
+                                                {% if form_data.get('priority', 'Normal') == priority %}
+                                                    selected
+                                                {% endif %}
+                                            >
+                                                {{ priority }}
+                                            </option>
+
+                                        {% endfor %}
+
+                                    </select>
+
+                                </label>
+
+
+                                <label>
+
+                                    <span>
+                                        Preferred Start Time
+                                    </span>
+
+                                    <input
+                                        type="time"
+                                        name="preferred_start_time"
+                                        id="pref-start"
+                                        value="{{ form_data.get('preferred_start_time', '') }}"
+                                    >
+
+                                </label>
+
+
+                                <label>
+
+                                    <span>
+                                        Preferred End Time
+                                    </span>
+
+                                    <input
+                                        type="time"
+                                        name="preferred_end_time"
+                                        id="pref-end"
+                                        value="{{ form_data.get('preferred_end_time', '') }}"
+                                    >
+
+                                </label>
+
+                            </div>
+
+
+                            <p class="field-note">
+
+                                <i class="fa-solid fa-circle-info"></i>
+
+                                A preferred date/time does not confirm
+                                the booking. The administrator chooses
+                                the final schedule after accepting
+                                the request.
+
+                            </p>
+
+                        </fieldset>
+
+
+                        <!-- ==========================================
+                             ADDITIONAL INFORMATION
+                        =========================================== -->
+
+                        <fieldset>
+
+                            <legend>
+                                Additional information
+                            </legend>
+
+
+                            <label>
+
+                                <span>
+                                    Extra Notes
+                                </span>
+
+                                <textarea
+                                    name="notes"
+                                    maxlength="700"
+                                    rows="4"
+                                    placeholder="Access instructions, parking, material preferences or other useful information."
+                                >{{ form_data.get('notes', '') }}</textarea>
+
+                            </label>
+
+
+                            <label class="privacy">
+
+                                <input
+                                    type="checkbox"
+                                    name="privacy_acknowledgement"
+                                    value="yes"
+                                    required
+
+                                    {% if form_data.get('privacy_acknowledgement') %}
+                                        checked
+                                    {% endif %}
+                                >
+
+
+                                <span>
+                                    I understand that the details I
+                                    submit will be stored in TimberOps
+                                    so the business can review and
+                                    manage this job enquiry. *
+                                </span>
+
+                            </label>
+
+                        </fieldset>
+
+
+                        <div class="submit-row">
+
+                            <div class="submit-note">
+
+                                <i class="fa-solid fa-shield-halved"></i>
+
+                                <span>
+                                    Your request enters TimberOps as
+                                    <strong>Pending</strong>.
+                                </span>
+
+                            </div>
+
+
+                            <button
+                                type="submit"
+                                class="submit-btn"
+                                id="submit-btn"
+                            >
+
+                                Submit Job Request
+
+                                <i class="fa-solid fa-arrow-right"></i>
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </section>
+
+
+                <!-- ==================================================
+                     STATUS LOOKUP
+                =================================================== -->
+
+                <aside class="panel status-panel">
+
+                    <div class="section-head">
+
+                        <span class="section-num">
+                            02
+                        </span>
+
+
+                        <div>
+
+                            <h2>
+                                Check Request Status
+                            </h2>
+
+
+                            <p>
+                                Use your reference number and
+                                the email used on the request.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <form
+                        action="{{ url_for('job_request_status') }}"
+                        method="POST"
+                        class="status-form"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        >
+
+
+                        <label>
+
+                            <span>
+                                Request Reference
+                            </span>
+
+                            <input
+                                type="text"
+                                name="request_number"
+                                required
+                                maxlength="30"
+                                placeholder="REQ-20260808-AB12"
+                            >
+
+                        </label>
+
+
+                        <label>
+
+                            <span>
+                                Email Address
+                            </span>
+
+                            <input
+                                type="email"
+                                name="status_email"
+                                required
+                                maxlength="120"
+                                placeholder="Email used on request"
+                            >
+
+                        </label>
+
+
+                        <button
+                            type="submit"
+                            class="status-btn"
+                        >
+
+                            <i class="fa-solid fa-magnifying-glass"></i>
+
+                            Check Status
+
+                        </button>
+
+                    </form>
+
+
+                    {% if status_result %}
+
+                        <div class="status-result">
+
+                            <div class="status-top">
+
+                                <span>
+                                    {{ status_result.request_number }}
+                                </span>
+
+
+                                <strong
+                                    class="
+                                        status-badge
+                                        {{ status_result.status }}
+                                    "
+                                >
+                                    {{ status_result.status }}
+                                </strong>
+
+                            </div>
+
+
+                            <h3>
+                                {{ status_result.job_title }}
+                            </h3>
+
+
+                            <p>
+                                {{ status_result.job_type }}
+                            </p>
+
+
+                            {% if status_result.preferred_date %}
+
+                                <div class="status-detail">
+
+                                    <span>
+                                        Preferred date
+                                    </span>
+
+                                    <strong>
+                                        {{ status_result.preferred_date }}
+                                    </strong>
+
+                                </div>
+
+                            {% endif %}
+
+
+                            <div class="status-detail">
+
+                                <span>
+                                    Last updated
+                                </span>
+
+                                <strong>
+                                    {{ status_result.updated_at }}
+                                </strong>
+
+                            </div>
+
+
+                            {% if status_result.admin_note %}
+
+                                <div class="admin-note">
+
+                                    <strong>
+                                        Business note
+                                    </strong>
+
+                                    <p>
+                                        {{ status_result.admin_note }}
+                                    </p>
+
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <div class="status-help">
+
+                        <i class="fa-solid fa-circle-info"></i>
+
+
+                        <div>
+
+                            <strong>
+                                Status guide
+                            </strong>
+
+
+                            <p>
+                                <b>Pending:</b>
+                                waiting for administrator review.
+                            </p>
+
+
+                            <p>
+                                <b>Accepted:</b>
+                                approved and moving through
+                                scheduling or work.
+                            </p>
+
+
+                            <p>
+                                <b>Completed:</b>
+                                the job has been marked finished.
+                            </p>
+
+
+                            <p>
+                                <b>Declined / Cancelled:</b>
+                                the request will not proceed.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </aside>
+
+            </section>
+
+        </main>
+
+
+        <!-- ==================================================
+             FOOTER
+        =================================================== -->
+
+        <footer class="footer">
+
+            <span>
+                TimberOps · JIGSH Maintenance Services
+            </span>
+
+            <span>
+                Booking and job scheduling portal
+            </span>
+
+        </footer>
+
+    </div>
+
+
+    <!-- ==================================================
+         JAVASCRIPT
+    =================================================== -->
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+
+                // =================================================
+                // COMING SOON NAVIGATION
+                // =================================================
+
+                document.querySelectorAll(
+                    ".coming-soon"
+                ).forEach(function (link) {
+
+                    link.addEventListener(
+                        "click",
+                        function (event) {
+
+                            event.preventDefault();
+
+
+                            alert(
+                                (
+                                    link.dataset.feature
+                                    || "This feature"
+                                )
+                                + " will be added later."
+                            );
+                        }
+                    );
+                });
+
+
+                // =================================================
+                // FLASH MESSAGES
+                // =================================================
+
+                document.querySelectorAll(
+                    ".close-flash"
+                ).forEach(function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            const message =
+                                button.closest(
+                                    ".flash-message"
+                                );
+
+
+                            if (message) {
+
+                                message.remove();
+                            }
+                        }
+                    );
+                });
+
+
+                // =================================================
+                // CHARACTER COUNTER
+                // =================================================
+
+                const description =
+                    document.getElementById(
+                        "description"
+                    );
+
+
+                const descriptionCount =
+                    document.getElementById(
+                        "desc-count"
+                    );
+
+
+                function updateDescriptionCount() {
+
+                    if (
+                        description
+                        && descriptionCount
+                    ) {
+
+                        descriptionCount.textContent =
+                            description.value.length;
+                    }
+                }
+
+
+                if (description) {
+
+                    description.addEventListener(
+                        "input",
+                        updateDescriptionCount
+                    );
+
+
+                    updateDescriptionCount();
+                }
+
+
+                // =================================================
+                // REQUEST FORM VALIDATION
+                // =================================================
+
+                const requestForm =
+                    document.getElementById(
+                        "request-form"
+                    );
+
+
+                const preferredStart =
+                    document.getElementById(
+                        "pref-start"
+                    );
+
+
+                const preferredEnd =
+                    document.getElementById(
+                        "pref-end"
+                    );
+
+
+                const submitButton =
+                    document.getElementById(
+                        "submit-btn"
+                    );
+
+
+                if (requestForm) {
+
+                    requestForm.addEventListener(
+                        "submit",
+                        function (event) {
+
+                            if (
+                                (
+                                    preferredStart.value
+                                    && !preferredEnd.value
+                                )
+
+                                ||
+
+                                (
+                                    !preferredStart.value
+                                    && preferredEnd.value
+                                )
+                            ) {
+
+                                event.preventDefault();
+
+
+                                alert(
+                                    (
+                                        "Enter both preferred start "
+                                        + "and end times, or leave "
+                                        + "both blank."
+                                    )
+                                );
+
+
+                                return;
+                            }
+
+
+                            if (
+                                preferredStart.value
+                                && preferredEnd.value
+                                && preferredEnd.value
+                                    <= preferredStart.value
+                            ) {
+
+                                event.preventDefault();
+
+
+                                alert(
+                                    (
+                                        "Preferred end time must "
+                                        + "be later than the "
+                                        + "start time."
+                                    )
+                                );
+
+
+                                return;
+                            }
+
+
+                            submitButton.disabled =
+                                true;
+
+
+                            submitButton.innerHTML =
+                                '<i class="fa-solid fa-spinner fa-spin"></i>'
+                                + " Submitting...";
+                        }
+                    );
+                }
+
+
+                // =================================================
+                // COPY REQUEST REFERENCE
+                // =================================================
+
+                const copyButton =
+                    document.getElementById(
+                        "copy-reference"
+                    );
+
+
+                const reference =
+                    document.getElementById(
+                        "request-reference"
+                    );
+
+
+                if (
+                    copyButton
+                    && reference
+                ) {
+
+                    copyButton.addEventListener(
+                        "click",
+                        async function () {
+
+                            const referenceText =
+                                reference.textContent.trim();
+
+
+                            try {
+
+                                await navigator
+                                    .clipboard
+                                    .writeText(
+                                        referenceText
+                                    );
+
+
+                                copyButton.innerHTML =
+                                    '<i class="fa-solid fa-check"></i>'
+                                    + " Copied";
+
+
+                            } catch (_error) {
+
+                                prompt(
+                                    (
+                                        "Copy your request "
+                                        + "reference:"
+                                    ),
+                                    referenceText
+                                );
+                            }
+                        }
+                    );
+                }
+
+            }
+        );
+
+    </script>
+
+</body>
+
+</html>
